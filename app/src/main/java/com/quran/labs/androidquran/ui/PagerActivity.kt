@@ -32,7 +32,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -106,7 +105,6 @@ import com.quran.labs.androidquran.ui.helpers.SlidingPagerAdapter
 import com.quran.labs.androidquran.ui.listener.AudioBarListener
 import com.quran.labs.androidquran.ui.readingbookmark.createReadingBookmarkToastView
 import com.quran.labs.androidquran.ui.util.ToastCompat.makeText
-import com.quran.labs.androidquran.ui.util.TranslationsSpinnerAdapter
 import com.quran.labs.androidquran.feature.reading.presenter.AudioPresenterScreen
 import com.quran.labs.androidquran.util.AudioUtils
 import com.quran.labs.androidquran.util.OrientationLockUtils
@@ -116,8 +114,8 @@ import com.quran.labs.androidquran.util.QuranScreenInfo
 import com.quran.labs.androidquran.util.QuranSettings
 import com.quran.labs.androidquran.util.QuranUtils
 import com.quran.labs.androidquran.util.ShareUtil
+import com.quran.labs.androidquran.util.ThemeUtil
 import com.quran.labs.androidquran.view.IconPageIndicator
-import com.quran.labs.androidquran.view.QuranSpinner
 import com.quran.labs.androidquran.view.SlidingUpPanelLayout
 import com.quran.mobile.common.download.DownloadInfoStreams
 import com.quran.mobile.di.AyahActionFragmentProvider
@@ -182,7 +180,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   private var lastPopupTime: Long = 0
   private var isActionBarHidden = true
   private var shouldReconnect = false
-  private var showingTranslation = false
+  private var showingTranslation = true
   private var needsPermissionToDownloadOver3g = true
   private var promptDialog: AlertDialog? = null
   private var isDualPages = false
@@ -196,17 +194,15 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
 
   private var translationNames: Array<String> = emptyArray()
   private var translations: List<LocalTranslation>? = null
-  private var activeTranslationsFilesNames: Set<String?>? = null
-  private var translationsSpinnerAdapter: TranslationsSpinnerAdapter? = null
 
   private lateinit var audioStatusBar: AudioBarWrapper
+  private lateinit var bottomControlsArea: View
   private lateinit var viewPager: ViewPager
   private lateinit var pagerAdapter: QuranPageAdapter
   private lateinit var ayahToolBar: AyahToolBar
   private lateinit var slidingPanel: SlidingUpPanelLayout
   private lateinit var slidingPager: ViewPager
   private lateinit var slidingPagerAdapter: SlidingPagerAdapter
-  private lateinit var translationsSpinner: QuranSpinner
   private lateinit var overlay: FrameLayout
   private lateinit var toolBarArea: View
 
@@ -217,6 +213,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   private lateinit var onClearAyahModeBackCallback: OnBackPressedCallback
   private lateinit var onShowingTranslationBackCallback: OnBackPressedCallback
   private lateinit var onEndSessionBackCallback: OnBackPressedCallback
+  private lateinit var onOverlayBackCallback: OnBackPressedCallback
 
   private var lastSelectedTranslationAyah: QuranAyahInfo? = null
   private var lastActivatedLocalTranslations: Array<LocalTranslation> = emptyArray()
@@ -250,6 +247,8 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   private lateinit var audioStatusRepositoryBridge: AudioStatusRepositoryBridge
   private lateinit var readingEventPresenterBridge: ReadingEventPresenterBridge
   private lateinit var windowInsetsController: WindowInsetsControllerCompat
+  private var currentReadingTitle: CharSequence = ""
+  private var currentReadingDetails: CharSequence = ""
 
   private var translationJob: Job? = null
   private lateinit var compositeDisposable: CompositeDisposable
@@ -412,20 +411,19 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     if (savedInstanceState != null) {
       Timber.d("non-null saved instance state!")
       page = savedInstanceState.getInt(LAST_READ_PAGE, -1)
-      showingTranslation = savedInstanceState
-        .getBoolean(LAST_READING_MODE_IS_TRANSLATION, false)
+      showingTranslation = true
       if (savedInstanceState.containsKey(LAST_ACTIONBAR_STATE)) {
         isActionBarHidden = !savedInstanceState.getBoolean(LAST_ACTIONBAR_STATE)
       }
       val lastWasDualPages = savedInstanceState.getBoolean(LAST_WAS_DUAL_PAGES, isDualPages)
       shouldAdjustPageNumber = (lastWasDualPages != isDualPages)
     } else {
+      showingTranslation = quranSettings.isTextReadingMode
       val intent = intent
       val extras = intent.extras
       if (extras != null) {
         page = extras.getInt("page", Constants.PAGES_FIRST)
-        showingTranslation =
-          extras.getBoolean(EXTRA_JUMP_TO_TRANSLATION, showingTranslation)
+        showingTranslation = true
         val highlightedSura = extras.getInt(EXTRA_HIGHLIGHT_SURA, -1)
         val highlightedAyah = extras.getInt(EXTRA_HIGHLIGHT_AYAH, -1)
 
@@ -438,15 +436,21 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
         }
       }
     }
-    onShowingTranslationBackCallback.isEnabled = showingTranslation
+    onShowingTranslationBackCallback.isEnabled = false
 
     compositeDisposable = CompositeDisposable()
 
     audioStatusBar = findViewById(R.id.audio_area)
+    bottomControlsArea = findViewById(R.id.bottom_controls_area)
 
     toolBarArea = findViewById(R.id.toolbar_area)
-    translationsSpinner = findViewById(R.id.spinner)
     overlay = findViewById(R.id.overlay)
+    val postponeAutomaticHide = View.OnTouchListener { _, _ ->
+      scheduleActionBarHide()
+      false
+    }
+    bottomControlsArea.setOnTouchListener(postponeAutomaticHide)
+    toolBarArea.setOnTouchListener(postponeAutomaticHide)
 
     ViewCompat.setOnApplyWindowInsetsListener(toolBarArea) { view, windowInsets ->
       val insets = windowInsets.getInsets(
@@ -460,17 +464,25 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
 
     val toolbar = findViewById<Toolbar>(R.id.toolbar)
     setSupportActionBar(toolbar)
+    toolbar.setOnClickListener {
+      scheduleActionBarHide()
+      showReadingInformationDialog()
+    }
+    findViewById<View>(R.id.bottom_zoom_in).setOnClickListener {
+      scheduleActionBarHide()
+      zoomCurrentPage(ZOOM_STEP)
+    }
+    findViewById<View>(R.id.bottom_zoom_out).setOnClickListener {
+      scheduleActionBarHide()
+      zoomCurrentPage(-ZOOM_STEP)
+    }
 
     supportActionBar?.setDisplayShowHomeEnabled(true)
     supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
     initAyahActionPanel()
 
-    if (showingTranslation && translationNames.isNotEmpty()) {
-      updateActionBarSpinner()
-    } else {
-      updateActionBarTitle(page)
-    }
+    updateActionBarTitle(page)
 
     lastPopupTime = System.currentTimeMillis()
     pagerAdapter = QuranPageAdapter(
@@ -557,11 +569,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
           }
         }
 
-        if (!showingTranslation) {
-          updateActionBarTitle(page)
-        } else {
-          refreshActionBarSpinner()
-        }
+        updateActionBarTitle(page)
 
         // If we're more than 1 page away from ayah selection end ayah mode
         val suraAyah: SuraAyah? = selectionStart
@@ -577,6 +585,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     viewPager.addOnPageChangeListener(onPageChangeListener)
 
     setUiVisibilityListener()
+    bottomControlsArea.visibility = View.VISIBLE
     audioStatusBar.visibility = View.VISIBLE
     toggleActionBarVisibility(true)
 
@@ -627,6 +636,12 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
         { ayah: SuraAyah -> ensurePage(ayah.sura, ayah.ayah) },
         { sliderPage: Int -> showSlider(slidingPagerAdapter.getPagePosition(sliderPage)) }
       ))
+
+    scope.launch {
+      currentPageFlow.collectLatest { pageNumber ->
+        rememberReadingPosition(pageNumber, -1, -1, showingTranslation)
+      }
+    }
   }
 
   private fun registerBackPressedCallbacks() {
@@ -638,9 +653,10 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     }
     onBackPressedDispatcher.addCallback(this, onEndSessionBackCallback)
 
-    onShowingTranslationBackCallback = object : OnBackPressedCallback(showingTranslation) {
+    onShowingTranslationBackCallback = object : OnBackPressedCallback(false) {
       override fun handleOnBackPressed() {
-        switchToQuran()
+        isEnabled = false
+        onBackPressedDispatcher.onBackPressed()
       }
     }
     onBackPressedDispatcher.addCallback(this, onShowingTranslationBackCallback)
@@ -651,6 +667,13 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       }
     }
     onBackPressedDispatcher.addCallback(this, onClearAyahModeBackCallback)
+
+    onOverlayBackCallback = object : OnBackPressedCallback(false) {
+      override fun handleOnBackPressed() {
+        hideOverlay()
+      }
+    }
+    onBackPressedDispatcher.addCallback(this, onOverlayBackCallback)
   }
 
   override fun onRequestPermissionsResult(
@@ -727,7 +750,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   override fun onWindowFocusChanged(hasFocus: Boolean) {
     super.onWindowFocusChanged(hasFocus)
     if (hasFocus) {
-      handler.sendEmptyMessageDelayed(MSG_HIDE_ACTIONBAR, DEFAULT_HIDE_AFTER_TIME)
+      scheduleActionBarHide()
     } else {
       handler.removeMessages(MSG_HIDE_ACTIONBAR)
     }
@@ -741,6 +764,11 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     if (suraAyah != null) {
       // continue to snap back to the page when the playback ayah changes
       ensurePage(suraAyah.sura, suraAyah.ayah)
+      updateActionBarTitle(
+        quranInfo.getPageFromSuraAyah(suraAyah.sura, suraAyah.ayah),
+        suraAyah.sura,
+        suraAyah.ayah
+      )
     }
   }
 
@@ -754,6 +782,13 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     if (haveSelection) {
       val startPosition = startPosition(ayahSelection)
       updateLocalTranslations(startPosition)
+      if (startPosition != null) {
+        updateActionBarTitle(
+          quranInfo.getPageFromSuraAyah(startPosition.sura, startPosition.ayah),
+          startPosition.sura,
+          startPosition.ayah
+        )
+      }
       onClearAyahModeBackCallback.isEnabled = selectionStart != null
     } else {
       endAyahMode()
@@ -859,8 +894,8 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       .start()
 
     // and audio bar
-    audioStatusBar.animate()
-      .translationY((if (visible) 0 else audioStatusBar.height).toFloat())
+    bottomControlsArea.animate()
+      .translationY((if (visible) 0 else bottomControlsArea.height).toFloat())
       .setDuration(250)
       .start()
   }
@@ -1041,7 +1076,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       val page = extras.getInt("page", Constants.PAGES_FIRST)
 
       val currentValue = showingTranslation
-      showingTranslation = extras.getBoolean(EXTRA_JUMP_TO_TRANSLATION, showingTranslation)
+      showingTranslation = true
       val highlightedSura = extras.getInt(EXTRA_HIGHLIGHT_SURA, -1)
       val highlightedAyah = extras.getInt(EXTRA_HIGHLIGHT_AYAH, -1)
       if (highlightedSura > 0 && highlightedAyah > 0) {
@@ -1049,16 +1084,9 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       }
 
       if (showingTranslation != currentValue) {
-        if (showingTranslation) {
-          pagerAdapter.setTranslationMode()
-          updateActionBarSpinner()
-          onShowingTranslationBackCallback.isEnabled = true
-        } else {
-          pagerAdapter.setQuranMode()
-          updateActionBarTitle(page)
-          onShowingTranslationBackCallback.isEnabled = false
-        }
-
+        pagerAdapter.setTranslationMode()
+        updateActionBarTitle(page)
+        onShowingTranslationBackCallback.isEnabled = false
         supportInvalidateOptionsMenu()
       }
 
@@ -1165,18 +1193,6 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       refreshBookmarksMenu()
     }
 
-    val quran = menu.findItem(R.id.goto_quran)
-    val translation = menu.findItem(R.id.goto_translation)
-    if (quran != null && translation != null) {
-      if (!showingTranslation) {
-        quran.isVisible = false
-        translation.isVisible = true
-      } else {
-        quran.isVisible = true
-        translation.isVisible = false
-      }
-    }
-
     val nightMode = menu.findItem(R.id.night_mode)
     if (nightMode != null) {
       val prefs = PreferenceManager.getDefaultSharedPreferences(this)
@@ -1188,28 +1204,21 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   }
 
   override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    scheduleActionBarHide()
     val itemId = item.itemId
     if (itemId == R.id.favorite_item) {
       readingBookmarkPresenter.togglePageReadingBookmark(currentPage)
       return true
-    } else if (itemId == R.id.goto_quran) {
-      switchToQuran()
-      return true
-    } else if (itemId == R.id.goto_translation) {
-      if (translations != null) {
-        quranEventLogger.switchToTranslationMode(translations!!.size)
-        switchToTranslation()
-      }
-      return true
     } else if (itemId == R.id.night_mode) {
-      val prefs = PreferenceManager
-        .getDefaultSharedPreferences(this)
-      val prefsEditor = prefs.edit()
       val isNightMode = !item.isChecked
-      prefsEditor.putBoolean(Constants.PREF_NIGHT_MODE, isNightMode).apply()
+      quranSettings.setNightMode(isNightMode)
       item.setIcon(if (isNightMode) R.drawable.ic_night_mode else R.drawable.ic_day_mode)
       item.isChecked = isNightMode
       refreshQuranPages()
+      ThemeUtil.setTheme(if (isNightMode) Constants.THEME_DARK else Constants.THEME_LIGHT)
+      return true
+    } else if (itemId == R.id.translation_selection) {
+      showTranslationSelectionDialog()
       return true
     } else if (itemId == R.id.settings) {
       val i = Intent(this, QuranPreferenceActivity::class.java)
@@ -1244,69 +1253,70 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     }
   }
 
-  private fun switchToQuran() {
-    if (selectionStart != null) {
-      endAyahMode()
-    }
-    val page = currentPage
-    pagerAdapter.setQuranMode()
-    showingTranslation = false
-    onShowingTranslationBackCallback.isEnabled = false
-    if (shouldUpdatePageNumber()) {
-      val position = quranInfo.getPositionFromPage(page, true)
-      viewPager.currentItem = position
-    }
-
-    supportInvalidateOptionsMenu()
-    updateActionBarTitle(page)
-  }
-
-  private fun switchToTranslation() {
-    if (selectionStart != null) {
-      endAyahMode()
-    }
-
-    if (translations!!.isEmpty()) {
-      startTranslationManager()
-    } else {
-      val page = currentPage
-      pagerAdapter.setTranslationMode()
-      showingTranslation = true
-      onShowingTranslationBackCallback.isEnabled = true
-      if (shouldUpdatePageNumber()) {
-        val position = quranInfo.getPositionFromPage(page, false)
-        viewPager.currentItem = position
-      }
-      supportInvalidateOptionsMenu()
-      updateActionBarSpinner()
-    }
-
-    if (!quranFileUtils.hasArabicSearchDatabase() && !promptedForExtraDownload) {
-      promptedForExtraDownload = true
-      showGetRequiredFilesDialog()
-    }
+  private fun zoomCurrentPage(delta: Float) {
+    val fragment = pagerAdapter.getFragmentIfExists(viewPager.currentItem)
+    (fragment as? QuranPage)?.zoomBy(delta)
   }
 
   fun startTranslationManager() {
     startActivity(Intent(this, TranslationManagerActivity::class.java))
   }
 
-  private val translationItemChangedListener =
-    TranslationsSpinnerAdapter.OnSelectionChangedListener { selectedItems: Set<String?>? ->
-      quranSettings.activeTranslations = selectedItems
-      val pos = viewPager.currentItem - 1
-      for (count in 0..2) {
-        if (pos + count < 0) {
-          continue
-        }
-        val f = pagerAdapter.getFragmentIfExists(pos + count)
-        if (f is TranslationFragment) {
-          f.refresh()
-        } else if (f is TabletFragment) {
-          f.refresh()
-        }
+  fun rememberReadingPosition(page: Int, sura: Int, ayah: Int, textMode: Boolean) {
+    quranSettings.setAutomaticReadingPosition(page, sura, ayah, textMode)
+    if (page == currentPage && sura > 0 && ayah > 0) {
+      updateActionBarTitle(page, sura, ayah)
+    }
+  }
+
+  private fun applyTranslationSelection(selectedItems: Set<String>) {
+    quranSettings.activeTranslations = selectedItems
+    val pos = viewPager.currentItem - 1
+    for (count in 0..2) {
+      if (pos + count < 0) {
+        continue
+      }
+      val f = pagerAdapter.getFragmentIfExists(pos + count)
+      if (f is TranslationFragment) {
+        f.refresh()
+      } else if (f is TabletFragment) {
+        f.refresh()
       }
     }
+  }
+
+  private fun showTranslationSelectionDialog() {
+    val localTranslations = translations.orEmpty()
+    if (localTranslations.isEmpty()) {
+      startTranslationManager()
+      return
+    }
+
+    val names = translationNames.take(localTranslations.size).toTypedArray()
+    val selectedItems = quranSettings.activeTranslations.filterNotNull().toMutableSet()
+    val checkedItems = BooleanArray(localTranslations.size) { index ->
+      selectedItems.contains(localTranslations[index].filename)
+    }
+
+    AlertDialog.Builder(this)
+      .setTitle(R.string.prefs_translations)
+      .setMultiChoiceItems(names, checkedItems) { _, which, isChecked ->
+        val filename = localTranslations[which].filename
+        if (isChecked) {
+          selectedItems.add(filename)
+        } else {
+          selectedItems.remove(filename)
+        }
+      }
+      .setPositiveButton(android.R.string.ok) { _, _ ->
+        applyTranslationSelection(selectedItems)
+      }
+      .setNegativeButton(android.R.string.cancel, null)
+      .setNeutralButton(R.string.more_translations) { _, _ ->
+        startTranslationManager()
+      }
+      .show()
+  }
 
   override fun onAddTagSelected() {
     val fm = supportFragmentManager
@@ -1314,71 +1324,42 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     dialog.show(fm, AddTagDialog.TAG)
   }
 
-  private fun updateActionBarTitle(page: Int) {
-    val sura = quranDisplayData.getSuraNameFromPage(this, page, true)
+  private fun updateActionBarTitle(
+    page: Int,
+    suraNumber: Int = quranInfo.getSuraOnPage(page),
+    ayahNumber: Int = quranInfo.getFirstAyahOnPage(page)
+  ) {
+    val sura = quranDisplayData.getSuraName(this, suraNumber, true)
+    currentReadingTitle = getString(
+      R.string.reader_toolbar_title,
+      sura,
+      QuranUtils.getLocalizedNumber(ayahNumber)
+    )
+    currentReadingDetails =
+      quranDisplayData.getPageSubtitle(this, page) +
+          QuranDisplayHelper.displayRub3(this, quranInfo, page)
     val actionBar = supportActionBar
     if (actionBar != null) {
-      translationsSpinner.visibility = View.GONE
       actionBar.setDisplayShowTitleEnabled(true)
-      actionBar.title = sura
-      val desc = quranDisplayData.getPageSubtitle(this, page)
-      actionBar.subtitle = desc
+      actionBar.title = currentReadingTitle
+      actionBar.subtitle = currentReadingDetails
     }
   }
 
-  private fun refreshActionBarSpinner() {
-    if (translationsSpinnerAdapter != null) {
-      translationsSpinnerAdapter!!.notifyDataSetChanged()
-    } else {
-      updateActionBarSpinner()
+  private fun showReadingInformationDialog() {
+    if (currentReadingTitle.isEmpty() || currentReadingDetails.isEmpty()) {
+      return
     }
+
+    AlertDialog.Builder(this)
+      .setTitle(R.string.reading_information)
+      .setMessage("$currentReadingTitle\n$currentReadingDetails")
+      .setPositiveButton(android.R.string.ok, null)
+      .show()
   }
 
   private val currentPage: Int
     get() = quranInfo.getPageFromPosition(viewPager.currentItem, isDualPageVisible)
-
-  private fun updateActionBarSpinner() {
-    if (translationNames.isEmpty()) {
-      val page = currentPage
-      updateActionBarTitle(page)
-      return
-    }
-
-    if (translationsSpinnerAdapter == null) {
-      translationsSpinnerAdapter = object : TranslationsSpinnerAdapter(
-        this,
-        R.layout.translation_ab_spinner_item, translationNames, translations,
-        if (activeTranslationsFilesNames == null) quranSettings.activeTranslations else activeTranslationsFilesNames,
-        translationItemChangedListener
-      ) {
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-          val type = super.getItemViewType(position)
-          val view = super.getView(position, convertView, parent)
-          if (type == 0) {
-            val holder = view.tag as SpinnerHolder
-            val page: Int = currentPage
-
-            val sura =
-              quranDisplayData.getSuraNameFromPage(this@PagerActivity, page, true)
-            holder.title.text = sura
-            holder.title.setTextColor(ResourcesCompat.getColor(resources, R.color.toolbar_text, null))
-            val desc = quranDisplayData.getPageSubtitle(this@PagerActivity, page)
-            holder.subtitle.text = desc
-            holder.subtitle.visibility = View.VISIBLE
-            holder.subtitle.setTextColor(ResourcesCompat.getColor(resources, R.color.toolbar_secondary_text, null))
-          }
-          return view
-        }
-      }
-      translationsSpinner.adapter = translationsSpinnerAdapter
-    }
-
-    val actionBar = supportActionBar
-    if (actionBar != null) {
-      actionBar.setDisplayShowTitleEnabled(false)
-      translationsSpinner.visibility = View.VISIBLE
-    }
-  }
 
   private fun onDownloadSuccess() {
     refreshQuranPages()
@@ -1396,11 +1377,19 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       setUiVisibility(true)
 
       isActionBarHidden = false
+      scheduleActionBarHide()
     } else {
       handler.removeMessages(MSG_HIDE_ACTIONBAR)
       setUiVisibility(false)
 
       isActionBarHidden = true
+    }
+  }
+
+  private fun scheduleActionBarHide() {
+    handler.removeMessages(MSG_HIDE_ACTIONBAR)
+    if (!isActionBarHidden) {
+      handler.sendEmptyMessageDelayed(MSG_HIDE_ACTIONBAR, DEFAULT_HIDE_AFTER_TIME)
     }
   }
 
@@ -1417,26 +1406,9 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   private fun requestTranslationsList() {
     translationJob =
       translationListPresenter.registerForTranslations { titles: Array<String>, updatedTranslations: List<LocalTranslation> ->
-        var currentActiveTranslationsFilesNames = quranSettings.activeTranslations
-        if (currentActiveTranslationsFilesNames.isEmpty() && updatedTranslations.isNotEmpty()) {
-          currentActiveTranslationsFilesNames = HashSet()
-          val items = updatedTranslations.size
-          for (i in 0 until items) {
-            currentActiveTranslationsFilesNames.add(updatedTranslations[i].filename)
-          }
-        }
-        activeTranslationsFilesNames = currentActiveTranslationsFilesNames
-
-        if (translationsSpinnerAdapter != null) {
-          translationsSpinnerAdapter!!
-            .updateItems(titles, updatedTranslations, activeTranslationsFilesNames)
-        }
         translationNames = titles
         translations = updatedTranslations
-        if (showingTranslation) {
-          // Since translation items have changed, need to
-          updateActionBarSpinner()
-        }
+        updateActionBarTitle(currentPage)
       }
   }
 
@@ -1698,7 +1670,9 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
         starting, page,
         quranSettings.preferredDownloadAmount, isDualPageVisible
       )!!
-    val qariListWrapper = QariListWrapper(this, starting, ending)
+    val qariListWrapper = QariListWrapper(this, starting, ending) {
+      hideOverlay()
+    }
     overlay.removeAllViews()
     overlay.addView(
       qariListWrapper,
@@ -1706,14 +1680,13 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       ViewGroup.LayoutParams.MATCH_PARENT
     )
     overlay.visibility = View.VISIBLE
+    onOverlayBackCallback.isEnabled = true
     toggleActionBarVisibility(false)
   }
 
   private fun showAyahBookmarkSheet(suraAyah: SuraAyah) {
     val ayahBookmarkWrapper = AyahBookmarkWrapper(this, suraAyah) { isBookmarked ->
-      overlay.removeAllViews()
-      overlay.visibility = View.GONE
-      toggleActionBarVisibility(true)
+      hideOverlay()
       updateAyahBookmark(suraAyah, isBookmarked)
     }
     overlay.removeAllViews()
@@ -1723,7 +1696,15 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       ViewGroup.LayoutParams.MATCH_PARENT
     )
     overlay.visibility = View.VISIBLE
+    onOverlayBackCallback.isEnabled = true
     toggleActionBarVisibility(false)
+  }
+
+  private fun hideOverlay() {
+    overlay.removeAllViews()
+    overlay.visibility = View.GONE
+    onOverlayBackCallback.isEnabled = false
+    toggleActionBarVisibility(true)
   }
 
   fun updatePlayOptions(
@@ -2037,7 +2018,8 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     const val EXTRA_HIGHLIGHT_AYAH: String = "highlightAyah"
     const val LAST_WAS_DUAL_PAGES: String = "wasDualPages"
 
-    private const val DEFAULT_HIDE_AFTER_TIME: Long = 2000
+    private const val DEFAULT_HIDE_AFTER_TIME: Long = 2500
+    private const val ZOOM_STEP = 0.35f
 
     const val MSG_HIDE_ACTIONBAR: Int = 1
 

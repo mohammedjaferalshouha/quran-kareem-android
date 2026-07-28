@@ -112,6 +112,10 @@ class QuranPageFragment : Fragment(), PageController, QuranPage, QuranPageScreen
     return ayahTrackerPresenter
   }
 
+  override fun zoomBy(delta: Float) {
+    quranPageLayout?.zoomBy(delta)
+  }
+
   override fun getAyahTrackerItems(): Array<AyahTrackerItem> {
     val trackerItems = ayahTrackerItems
     return if (trackerItems == null) {

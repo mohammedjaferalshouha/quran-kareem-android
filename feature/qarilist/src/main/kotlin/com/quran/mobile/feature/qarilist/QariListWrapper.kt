@@ -56,6 +56,7 @@ class QariListWrapper(
   context: Context,
   private val startAyah: SuraAyah,
   private val endAyah: SuraAyah,
+  private val onDismiss: () -> Unit,
 ): FrameLayout(context) {
 
   @Inject
@@ -97,6 +98,7 @@ class QariListWrapper(
       focusManager.clearFocus()
       coroutineScope.launch {
         state.bottomSheetState.hide()
+        onDismiss()
       }
     }
 

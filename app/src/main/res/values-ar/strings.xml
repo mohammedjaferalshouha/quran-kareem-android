@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-  <string name="app_name">قرآن</string>
+  <string name="app_name">القرآن الكريم</string>
   <string name="downloadPrompt_title">حمل الملفات المطلوبه؟</string>
   <string name="downloadPrompt"> لكي يعمل التطبيق بنجاح تحتاج لتحميل بعض الملفات الان. إن لم يتم التحميل الان قد لا يعمل التطبيق بشكل صحيح و ستحتاج للاتصال بالإنترنت للقراءة. هل تود التحميل الان؟</string>
   <string name="downloadImportantPrompt">هناك تحديث هام صغير على ملفات الصور على هاتفكم. هل تود  تحميل الملف حالا؟</string>
@@ -11,15 +11,25 @@
   <string name="menu_about">عنا</string>
   <string name="menu_other_apps">تطبيقات أخرى‎</string>
   <string name="menu_settings">الإعدادات</string>
-  <string name="menu_jump_last_page">الصفحة الأخيرة</string>
+  <string name="menu_jump_last_page">متابعة القراءة</string>
+  <string name="continue_reading_ayah">متابعة القراءة: سورة %1$s، الآية %2$d</string>
+  <string name="continue_reading_page">متابعة القراءة: الصفحة %1$d</string>
+  <string name="automatic_continue_reading">متابعة القراءة</string>
+  <string name="automatic_continue_reading_empty">سيظهر هنا آخر موضع قراءة تلقائيًا</string>
+  <string name="press_back_again_to_exit">اضغط مرة أخرى للخروج</string>
+  <string name="reading_bookmark">&#1605;&#1608;&#1590;&#1593; &#1575;&#1604;&#1578;&#1608;&#1602;&#1601;</string>
   <string name="menu_bookmarks">المرجعيات</string>
   <string name="menu_bookmarks_page">مرجعيات الصفحات</string>
   <string name="menu_bookmarks_ayah">مرجعيات الآيات</string>
   <string name="menu_sort">تغيير الترتيب</string>
   <string name="menu_sort_date">تاريخ الإضافة</string>
   <string name="menu_sort_location">موقعها في القرآن</string>
-  <string name="menu_translation">التفسير/الترجمة</string>
-  <string name="menu_back_to_page">إلى التلاوة</string>
+  <string name="menu_translation">وضع النص</string>
+  <string name="menu_back_to_page">وضع الصفحات</string>
+  <string name="zoom_in">تكبير</string>
+  <string name="zoom_out">تصغير</string>
+  <string name="reading_mode_text_selected">سيُفتح وضع النص تلقائيًا</string>
+  <string name="reading_mode_pages_selected">سيُفتح وضع الصفحات تلقائيًا</string>
   <string name="menu_help">مساعدة</string>
   <string name="menu_search">بحث</string>
   <string name="menu_get_translations">حمل التفاسير/التراجم</string>
@@ -51,6 +61,7 @@
   <string name="quranSearchType">آيات القرآن</string>
   <string name="search_full_results">نتائج كاملة</string>
   <string name="search_entire_mushaf">ابحث في المصحف بأكمله</string>
+  <string name="search_sura_result_metadata">%1$s آية — الصفحة %2$s</string>
 
   <!-- Shown above search results when we receive a search request. -->
   <plurals name="search_results">
@@ -157,6 +168,8 @@
   <string name="juz2_description">الجزء %1$s</string>
   <string name="manzil_description">منزل %1$s</string>
   <string name="page_description">صفحة %1$s، جزء %2$s</string>
+  <string name="reader_toolbar_title">%1$s، الآية %2$s</string>
+  <string name="reading_information">معلومات موضع القراءة</string>
   <string name="highlighting_database">جاري تحميل الملفات المطلوبة</string>
   <string name="timing_database">جاري تحميل الملفات المطلوبة</string>
 
@@ -253,7 +266,7 @@
   <string name="prefs_category_advanced_summary">استيراد وتصدير المرجعيات وإعدادات أخرى</string>
   <string name="prefs_export_title">تصدير</string>
   <string name="prefs_export_summary">تصدير نسخة من المرجعيات و التصنيفات.</string>
-  <string name="prefs_page_type_title">نوع طباعة المصحف (تجريبي )</string>
+  <string name="prefs_page_type_title">نوع طباعة المصحف</string>
   <string name="prefs_page_type_summary">اختر نوع الصفحات</string>
 
   <string name="import_data">استيراد البيانات</string>
@@ -262,7 +275,7 @@
   <string name="export_data_error">خطأ في استيراد البيانات.</string>
   <string name="warning">تحذير</string>
 
-  <string name="recent_pages">آخر المتصفحات</string>
+  <string name="recent_pages">آخر مواضع القراءة تلقائيًا</string>
   <string name="old_page_bookmarks">مرجعيات الصفحات القديمة</string>
 
   <plurals name="bookmark_tag_deleted">
@@ -294,8 +307,9 @@
   <string name="menu_show_date">إظهار تاريخ الإضافة</string>
   <string name="pause">وقف مؤقت</string>
   <string name="prefs_category_dual_screen">تفضيلات الصفحتين المتجاورتين</string>
-  <string name="prefs_split_page_and_translation_title">عرض صفحة من المصحف وأخرى من الترجمة</string>
-  <string name="prefs_split_page_and_translation_summary">عند تفعيل الصفحتين المتجاورتين، تعرض صفحة المصحف والترجمة معا</string>
+  <string name="prefs_split_page_and_translation_title">عرض النص القرآني والترجمة جنبًا إلى جنب</string>
+  <string name="prefs_split_page_and_translation_summary">يعرض النص القرآني على اليمين والترجمة المختارة على اليسار</string>
+  <string name="translation_not_selected">لم يتم اختيار ترجمة. اختر ترجمة من إعدادات التفسير والترجمة.</string>
   <string name="move_up">تحريك للأعلى</string>
   <string name="move_down">تحريك للأسفل</string>
   <string name="delete_translation">حذف الترجمة</string>

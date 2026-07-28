@@ -4,8 +4,8 @@
   android:installLocation="auto">
 
   <application
-      android:icon="@drawable/debug_icon"
-      android:roundIcon="@drawable/debug_icon"
+      android:icon="@drawable/quran_kareem_icon"
+      android:roundIcon="@drawable/quran_kareem_icon"
       android:label="${app_debug_label}"
       android:name=".DebugApplication"
       tools:replace="android:icon,android:roundIcon,android:label,android:name">

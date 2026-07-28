@@ -48,7 +48,8 @@ open class BaseTranslationPresenter<T : Any> internal constructor(
   suspend fun getVerses(
     getArabic: Boolean,
     translationsFileNames: List<String>,
-    verseRange: VerseRange
+    verseRange: VerseRange,
+    fallbackToAvailableTranslations: Boolean = true
   ): ResultHolder {
     return withContext(Dispatchers.IO) {
       val translations = translationsAdapter.getTranslations().first()
@@ -62,9 +63,12 @@ open class BaseTranslationPresenter<T : Any> internal constructor(
       // 1. all available translations were unchecked
       // 2. there are checked translations that don't exist
       // in either of these cases, enable all available translations.
-      val orderedTranslationsFileNames = filteredTranslationsFileNames.ifEmpty {
-        sortedTranslations.map { it.filename }
-      }
+      val orderedTranslationsFileNames =
+        if (filteredTranslationsFileNames.isEmpty() && fallbackToAvailableTranslations) {
+          sortedTranslations.map { it.filename }
+        } else {
+          filteredTranslationsFileNames
+        }
 
       val job = SupervisorJob()
       // get all the translations for these verses, using a source of the list of ordered active translations
@@ -99,7 +103,12 @@ open class BaseTranslationPresenter<T : Any> internal constructor(
       }
       val translationMap = getTranslationMap()
 
-      val translationInfos = getTranslations(orderedTranslationsFileNames, translationMap)
+      val translationInfos =
+        if (orderedTranslationsFileNames.isEmpty()) {
+          emptyArray()
+        } else {
+          getTranslations(orderedTranslationsFileNames, translationMap)
+        }
       val ayahInfo = combineAyahData(verseRange, arabicText, translationTexts, translationInfos)
       ResultHolder(translationInfos, ayahInfo)
     }

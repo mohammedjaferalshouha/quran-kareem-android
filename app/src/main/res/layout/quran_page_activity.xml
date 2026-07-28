@@ -36,21 +36,47 @@
         app:titleTextAppearance="@style/ToolbarTitleText"
         app:subtitleTextAppearance="@style/ToolbarSubtitleText"
         android:elevation="4dp"
-        >
-      <com.quran.labs.androidquran.view.QuranSpinner
-          android:id="@+id/spinner"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:visibility="gone"
-          />
-    </androidx.appcompat.widget.Toolbar>
+        />
   </FrameLayout>
 
-  <com.quran.mobile.feature.audiobar.AudioBarWrapper
-      android:id="@+id/audio_area"
+  <LinearLayout
+      android:id="@+id/bottom_controls_area"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:layout_gravity="bottom"
+      android:background="@color/toolbar"
+      android:gravity="center_vertical"
+      android:orientation="horizontal"
       android:visibility="gone"
-      />
+      >
+
+    <ImageButton
+        android:id="@+id/bottom_zoom_out"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/zoom_out"
+        android:padding="12dp"
+        android:src="@drawable/ic_zoom_out"
+        app:tint="@color/toolbar_icon_tint"
+        />
+
+    <com.quran.mobile.feature.audiobar.AudioBarWrapper
+        android:id="@+id/audio_area"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        />
+
+    <ImageButton
+        android:id="@+id/bottom_zoom_in"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/zoom_in"
+        android:padding="12dp"
+        android:src="@drawable/ic_zoom_in"
+        app:tint="@color/toolbar_icon_tint"
+        />
+  </LinearLayout>
 </FrameLayout>

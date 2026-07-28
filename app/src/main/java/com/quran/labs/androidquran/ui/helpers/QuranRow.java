@@ -15,6 +15,7 @@ public class QuranRow {
   public static final int BOOKMARK_HEADER = 4;
   public static final int PAGE_READING_BOOKMARK = 5;
   public static final int AYAH_READING_BOOKMARK = 6;
+  public static final int AUTOMATIC_READING_POSITION = 7;
 
   public int sura;
   public int ayah;
@@ -164,6 +165,10 @@ public class QuranRow {
 
   public boolean isReadingBookmark() {
     return rowType == PAGE_READING_BOOKMARK || rowType == AYAH_READING_BOOKMARK;
+  }
+
+  public boolean isAutomaticReadingPosition() {
+    return rowType == AUTOMATIC_READING_POSITION;
   }
 
   public boolean isAyahBookmark() {

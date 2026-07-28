@@ -73,6 +73,14 @@ public class QuranSettings {
     return prefs.getBoolean(Constants.PREF_NIGHT_MODE, false);
   }
 
+  public void setNightMode(boolean nightMode) {
+    prefs.edit()
+        .putBoolean(Constants.PREF_NIGHT_MODE, nightMode)
+        .putString(Constants.PREF_APP_THEME,
+            nightMode ? Constants.THEME_DARK : Constants.THEME_LIGHT)
+        .apply();
+  }
+
   public boolean useNewBackground() {
     return prefs.getBoolean(Constants.PREF_USE_NEW_BACKGROUND, true);
   }
@@ -148,6 +156,42 @@ public class QuranSettings {
 
   public int getLastPage() {
     return prefs.getInt(Constants.PREF_LAST_PAGE, Constants.NO_PAGE);
+  }
+
+  public void setAutomaticReadingPosition(int page, int sura, int ayah, boolean textMode) {
+    prefs.edit()
+        .putInt(Constants.PREF_AUTO_LAST_PAGE, page)
+        .putInt(Constants.PREF_AUTO_LAST_SURA, sura)
+        .putInt(Constants.PREF_AUTO_LAST_AYAH, ayah)
+        .putBoolean(Constants.PREF_AUTO_LAST_TEXT_MODE, textMode)
+        .apply();
+  }
+
+  public int getAutomaticLastPage() {
+    return prefs.getInt(Constants.PREF_AUTO_LAST_PAGE, Constants.NO_PAGE);
+  }
+
+  public int getAutomaticLastSura() {
+    return prefs.getInt(Constants.PREF_AUTO_LAST_SURA, -1);
+  }
+
+  public int getAutomaticLastAyah() {
+    return prefs.getInt(Constants.PREF_AUTO_LAST_AYAH, -1);
+  }
+
+  public boolean wasAutomaticLastTextMode() {
+    return true;
+  }
+
+  public boolean isTextReadingMode() {
+    return true;
+  }
+
+  public void setTextReadingMode(boolean textMode) {
+    prefs.edit()
+        .putBoolean(Constants.PREF_READING_TEXT_MODE, true)
+        .putBoolean(Constants.PREF_WAS_SHOWING_TRANSLATION, true)
+        .apply();
   }
 
   public int getBookmarksSortOrder() {

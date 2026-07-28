@@ -28,8 +28,8 @@
 
   <application
       android:banner="@mipmap/tv_banner"
-      android:icon="@mipmap/ic_launcher"
-      android:roundIcon="@mipmap/ic_launcher_round"
+      android:icon="@drawable/quran_kareem_icon"
+      android:roundIcon="@drawable/quran_kareem_icon"
       android:label="@string/app_name"
       android:name=".QuranApplication"
       android:allowBackup="true"

@@ -72,6 +72,14 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
       val activity: Activity? = activity
       (activity as? PagerActivity?)?.toggleActionBar()
     }
+    translationView.setReadingPositionChangedListener { ayahInfo ->
+      (activity as? PagerActivity)?.rememberReadingPosition(
+        pageNumber,
+        ayahInfo.sura,
+        ayahInfo.ayah,
+        true
+      )
+    }
     return mainView
   }
 
@@ -101,6 +109,15 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
 
   override fun getAyahTracker(): AyahTracker {
     return ayahTrackerPresenter
+  }
+
+  override fun zoomBy(delta: Float) {
+    val step = if (delta > 0) TEXT_SIZE_STEP else -TEXT_SIZE_STEP
+    val size = (quranSettings.ayahTextSize + step).coerceIn(MIN_TEXT_SIZE, MAX_TEXT_SIZE)
+    if (size != quranSettings.ayahTextSize) {
+      quranSettings.setAyahTextSize(size)
+      translationView.refresh(quranSettings)
+    }
   }
 
   override fun getAyahTrackerItems(): Array<AyahTrackerItem> {
@@ -134,6 +151,7 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
     translations: Array<LocalTranslation>,
     verses: List<QuranAyahInfo>
   ) {
+    translationView.setPageNumber(page)
     translationView.setVerses(quranDisplayData, translations, verses)
   }
 
@@ -197,6 +215,9 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
   companion object {
     private const val PAGE_NUMBER_EXTRA = "pageNumber"
     private const val SI_SCROLL_POSITION = "SI_SCROLL_POSITION"
+    private const val MIN_TEXT_SIZE = 9
+    private const val MAX_TEXT_SIZE = 60
+    private const val TEXT_SIZE_STEP = 3
     fun newInstance(page: Int): TranslationFragment {
       val f = TranslationFragment()
       val args = Bundle()

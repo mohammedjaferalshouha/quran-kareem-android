@@ -14,9 +14,15 @@ plugins {
   alias(libs.plugins.sqldelight)
 }
 
-// whether or not to use Firebase - Firebase is enabled by default, and is only disabled for
-// providing apks for open source distribution stores.
-val useFirebase = !project.hasProperty("disableFirebase")
+// This distribution is private by design: no analytics, crash reporting, or external accounts.
+val useFirebase = false
+val releaseSigning = mapOf(
+  "STORE_FILE" to providers.gradleProperty("STORE_FILE").orNull,
+  "STORE_PASSWORD" to providers.gradleProperty("STORE_PASSWORD").orNull,
+  "KEY_ALIAS" to providers.gradleProperty("KEY_ALIAS").orNull,
+  "KEY_PASSWORD" to providers.gradleProperty("KEY_PASSWORD").orNull
+)
+val hasReleaseSigning = releaseSigning.values.all { !it.isNullOrBlank() }
 val oauthProperties = Properties().apply {
   // Optional local sync config. Android OAuth uses PKCE, so client secrets are intentionally unsupported.
   val oauthPropertiesFile = rootProject.file("oauth.properties")
@@ -36,8 +42,8 @@ android {
   namespace = "com.quran.labs.androidquran"
 
   defaultConfig {
-    versionCode = 3630
-    versionName = "3.6.3"
+    versionCode = 10000
+    versionName = "1.0.0"
     testInstrumentationRunner = "com.quran.labs.androidquran.core.QuranTestRunner"
   }
 
@@ -63,18 +69,20 @@ android {
   buildFeatures.buildConfig = true
 
   signingConfigs {
-    create("release") {
-      storeFile = file((project.property("STORE_FILE") as String))
-      storePassword = project.property("STORE_PASSWORD") as String
-      keyAlias = project.property("KEY_ALIAS") as String
-      keyPassword = project.property("KEY_PASSWORD") as String
+    if (hasReleaseSigning) {
+      create("release") {
+        storeFile = file(checkNotNull(releaseSigning["STORE_FILE"]))
+        storePassword = checkNotNull(releaseSigning["STORE_PASSWORD"])
+        keyAlias = checkNotNull(releaseSigning["KEY_ALIAS"])
+        keyPassword = checkNotNull(releaseSigning["KEY_PASSWORD"])
+      }
     }
   }
 
   flavorDimensions += listOf("pageType")
   productFlavors {
     create("madani") {
-      applicationId = "com.quran.labs.androidquran"
+      applicationId = "com.moham.qurankareem"
     }
   }
 
@@ -83,7 +91,7 @@ android {
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard.cfg")
-      signingConfig = signingConfigs.getByName("release")
+      signingConfig = signingConfigs.findByName("release")
       versionNameSuffix = "-beta"
       matchingFallbacks += listOf("debug", "release")
     }
@@ -98,7 +106,7 @@ android {
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard.cfg")
-      signingConfig = signingConfigs.getByName("release")
+      signingConfig = signingConfigs.findByName("release")
     }
   }
 
@@ -163,13 +171,8 @@ androidComponents {
     }
 
     if (applicationId.endsWith("debug")) {
-      val name = variant.flavorName ?: variant.name
-      variant.manifestPlaceholders.put("app_debug_label",
-        "Quran ${name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }}")
-      unitTestManifestPlaceholders?.put(
-        "app_debug_label",
-        "Quran ${name.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }}"
-      )
+      variant.manifestPlaceholders.put("app_debug_label", "القرآن الكريم")
+      unitTestManifestPlaceholders?.put("app_debug_label", "القرآن الكريم")
     }
   }
 }
@@ -237,7 +240,6 @@ dependencies {
   implementation(project(":feature:ayahbookmark"))
   implementation(project(":feature:downloadmanager"))
   implementation(project(":feature:qarilist"))
-  implementation(project(":feature:sync"))
 
   // android auto support
   implementation(project(":feature:autoquran"))
@@ -292,8 +294,6 @@ dependencies {
 
   implementation(libs.insetter)
   implementation(libs.timber)
-  debugImplementation(libs.leakcanary.android)
-
   testImplementation(project(":common:test-utils"))
   testImplementation(libs.junit)
   testImplementation(libs.truth)

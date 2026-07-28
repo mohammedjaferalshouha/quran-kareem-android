@@ -10,10 +10,40 @@ import com.quran.labs.androidquran.R
 import com.quran.labs.androidquran.util.QuranUtils
 import com.quran.page.common.data.QuranNaming
 import dev.zacsweers.metro.Inject
+import java.text.Normalizer
+import java.util.Locale
 import timber.log.Timber
 import com.quran.mobile.common.ui.core.R as UiCoreR
 
 class QuranDisplayData @Inject constructor(private val quranInfo: QuranInfo): QuranNaming, QuranDisplayInterface {
+
+  fun findSurasByName(context: Context, query: String): List<Int> {
+    val normalizedQuery = normalizeSuraSearch(query)
+    if (normalizedQuery.isEmpty()) {
+      return emptyList()
+    }
+
+    return (Constants.SURA_FIRST..Constants.SURA_LAST)
+      .map { sura -> sura to normalizeSuraSearch(getSuraName(context, sura, false)) }
+      .filter { (_, name) -> name == normalizedQuery || name.startsWith(normalizedQuery) }
+      .sortedByDescending { (_, name) -> name == normalizedQuery }
+      .map { (sura, _) -> sura }
+  }
+
+  private fun normalizeSuraSearch(value: String): String {
+    return Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+      .replace(Regex("[\\u064B-\\u065F\\u0670]"), "")
+      .lowercase(Locale.ROOT)
+      .replace(Regex("^(سورة|سوره|surah|sura)\\s*"), "")
+      .replace('أ', 'ا')
+      .replace('إ', 'ا')
+      .replace('آ', 'ا')
+      .replace('ؤ', 'و')
+      .replace('ئ', 'ي')
+      .replace('ى', 'ي')
+      .replace('ة', 'ه')
+      .replace(Regex("[^\\p{L}\\p{N}]"), "")
+  }
 
   /**
    * Get localized sura name from resources

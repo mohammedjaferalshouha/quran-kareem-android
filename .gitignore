@@ -17,6 +17,10 @@ ApiKeys.java
 app/src/beta
 app/src/release
 app/seed.txt
+*.jks
+*.keystore
+signing.properties
+نسخة-التجربة/
 build/
 */crashlytics.properties
 crashlytics-build.properties

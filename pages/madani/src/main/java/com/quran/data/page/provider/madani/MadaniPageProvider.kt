@@ -69,6 +69,54 @@ class MadaniPageProvider : PageProvider {
         path = "2",
         hasGaplessAlternative = false,
         db = null
+      ),
+      Qari(
+        3,
+        audioR.string.qari_afasy,
+        url = "https://mirrors.quranicaudio.com/everyayah/Alafasy_128kbps/",
+        path = "afasy",
+        hasGaplessAlternative = false,
+        db = null
+      ),
+      Qari(
+        4,
+        audioR.string.qari_hani_rifai,
+        url = "https://mirrors.quranicaudio.com/everyayah/Hani_Rifai_192kbps/",
+        path = "hani_rifai",
+        hasGaplessAlternative = false,
+        db = null
+      ),
+      Qari(
+        5,
+        audioR.string.qari_muaiqly,
+        url = "https://mirrors.quranicaudio.com/everyayah/Maher_AlMuaiqly_64kbps/",
+        path = "muaiqly",
+        hasGaplessAlternative = false,
+        db = null
+      ),
+      Qari(
+        6,
+        audioR.string.qari_shuraym,
+        url = "https://mirrors.quranicaudio.com/everyayah/Saood_ash-Shuraym_128kbps/",
+        path = "shuraym",
+        hasGaplessAlternative = false,
+        db = null
+      ),
+      Qari(
+        7,
+        audioR.string.qari_dussary,
+        url = "https://mirrors.quranicaudio.com/everyayah/Yasser_Ad-Dussary_128kbps/",
+        path = "dussary",
+        hasGaplessAlternative = false,
+        db = null
+      ),
+      Qari(
+        8,
+        audioR.string.qari_abdulbaset,
+        url = "https://mirrors.quranicaudio.com/everyayah/Abdul_Basit_Murattal_192kbps/",
+        path = "abdulbaset",
+        hasGaplessAlternative = false,
+        db = null
       )
     )
   }

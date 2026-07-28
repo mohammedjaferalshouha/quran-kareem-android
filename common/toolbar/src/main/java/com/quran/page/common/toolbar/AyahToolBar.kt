@@ -13,7 +13,6 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.appcompat.widget.PopupMenu
-import androidx.core.content.ContextCompat
 import androidx.core.graphics.Insets
 import com.quran.data.model.selection.SelectionIndicator
 import com.quran.labs.androidquran.common.toolbar.R
@@ -63,13 +62,13 @@ class AyahToolBar @JvmOverloads constructor(
     val toolBarHeight = resources.getDimensionPixelSize(R.dimen.toolbar_height)
     pipHeight = resources.getDimensionPixelSize(R.dimen.toolbar_pip_height)
     pipWidth = resources.getDimensionPixelSize(R.dimen.toolbar_pip_width)
-    val background = ContextCompat.getColor(context, R.color.toolbar_background)
-
     toolBarTotalHeight = resources.getDimensionPixelSize(R.dimen.toolbar_total_height)
 
     menuLayout = LinearLayout(context).apply {
       layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, toolBarHeight)
-      setBackgroundColor(background)
+      setBackgroundResource(R.drawable.ayah_toolbar_background)
+      elevation = resources.getDimension(R.dimen.toolbar_elevation)
+      clipToOutline = true
     }
     menuLayout.layoutDirection = LAYOUT_DIRECTION_LTR
     addView(menuLayout)
@@ -191,7 +190,7 @@ class AyahToolBar @JvmOverloads constructor(
   // relying on getWidth() may give us the width of a shorter
   // submenu instead of the actual menu
   private val toolBarWidth: Int
-    get() = menu.size() * itemWidth
+    get() = (0 until menu.size()).count { menu.getItem(it).isVisible } * itemWidth
 
   fun setBookmarked(bookmarked: Boolean) {
     val bookmarkItem = menu.findItem(R.id.cab_bookmark_ayah)

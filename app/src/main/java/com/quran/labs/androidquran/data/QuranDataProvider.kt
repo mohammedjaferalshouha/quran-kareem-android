@@ -74,17 +74,9 @@ class QuranDataProvider : ContentProvider() {
   }
 
   private fun getSuggestions(query: String): Cursor? {
-    if (query.length < 3) {
+    if (query.length < 2) {
       return null
     }
-    val queryIsArabic = QuranUtils.doesStringContainArabic(query)
-    val haveArabic = queryIsArabic && quranFileUtils.hasArabicSearchDatabase()
-    val translations = availableTranslations()
-    if (translations.isEmpty() && queryIsArabic && !haveArabic) {
-      return null
-    }
-    val total = translations.size
-    val start = if (haveArabic) -1 else 0
     val cols = arrayOf(
       BaseColumns._ID,
       SearchManager.SUGGEST_COLUMN_TEXT_1,
@@ -93,6 +85,36 @@ class QuranDataProvider : ContentProvider() {
     )
     val mc = MatrixCursor(cols)
     val context = context
+    if (context != null) {
+      quranDisplayData.findSurasByName(context, query)
+        .take(MAX_SURA_SUGGESTIONS)
+        .forEach { sura ->
+          val page = quranInfo.getPageNumberForSura(sura)
+          val ayahs = quranInfo.getNumberOfAyahs(sura)
+          val encodedId = encodeSuraResultId(sura)
+          mc.addRow(
+            arrayOf<Any>(
+              encodedId,
+              quranDisplayData.getSuraName(context, sura, true),
+              context.getString(
+                R.string.search_sura_result_metadata,
+                QuranUtils.getLocalizedNumber(ayahs),
+                QuranUtils.getLocalizedNumber(page)
+              ),
+              encodedId
+            )
+          )
+        }
+    }
+
+    val queryIsArabic = QuranUtils.doesStringContainArabic(query)
+    val haveArabic = queryIsArabic && quranFileUtils.hasArabicSearchDatabase()
+    val translations = availableTranslations()
+    if (translations.isEmpty() && queryIsArabic && !haveArabic) {
+      return if (mc.count > 0) mc else null
+    }
+    val total = translations.size
+    val start = if (haveArabic) -1 else 0
     var gotResults = false
     var likelyHaveMoreResults = false
     for (i in start until total) {
@@ -241,6 +263,15 @@ class QuranDataProvider : ContentProvider() {
     const val VERSES_MIME_TYPE =
       ContentResolver.CURSOR_DIR_BASE_TYPE + "/vnd.com.quran.labs.androidquran"
     const val QURAN_ARABIC_DATABASE = QuranFileConstants.ARABIC_DATABASE
+    private const val SURA_RESULT_ID_BASE = -1000
+    private const val MAX_SURA_SUGGESTIONS = 3
+
+    fun encodeSuraResultId(sura: Int): Int = SURA_RESULT_ID_BASE - sura
+
+    fun decodeSuraResultId(id: Int): Int? {
+      val sura = SURA_RESULT_ID_BASE - id
+      return sura.takeIf { it in 1..114 }
+    }
 
     // UriMatcher stuff
     private const val SEARCH_VERSES = 0

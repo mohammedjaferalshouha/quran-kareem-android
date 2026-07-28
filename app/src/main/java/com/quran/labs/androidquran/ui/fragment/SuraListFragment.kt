@@ -117,6 +117,7 @@ class SuraListFragment : Fragment(), QuranTouchListener {
       viewLifecycleOwner.lifecycleScope.launch {
         val currentReadingBookmark = readingBookmarksDao.readingBookmark()
         updateReadingBookmark(currentReadingBookmark)
+        updateSuraList()
         val recentPage = activity.latestPage()
         if (recentPage != Constants.NO_PAGE) {
           val sura = quranDisplayData.safelyGetSuraOnPage(recentPage)
@@ -142,10 +143,33 @@ class SuraListFragment : Fragment(), QuranTouchListener {
     var sura = 1
     val readingBookmark = readingBookmark
     val elements = arrayOfNulls<QuranRow>(
-      SURAS_COUNT + JUZ2_COUNT + if (readingBookmark == null) 0 else READING_BOOKMARK_ROWS
+      SURAS_COUNT + JUZ2_COUNT + AUTOMATIC_READING_ROWS +
+        if (readingBookmark == null) 0 else READING_BOOKMARK_ROWS
     )
 
     val activity: Activity = requireActivity()
+    val quranActivity = activity as QuranActivity
+    val automaticPage = quranSettings.automaticLastPage
+      .takeIf(quranInfo::isValidPage)
+      ?: Constants.PAGES_FIRST
+    val automaticSura = quranSettings.automaticLastSura
+      .takeIf { it in 1..SURAS_COUNT }
+      ?: quranDisplayData.safelyGetSuraOnPage(automaticPage)
+    elements[pos++] = QuranRow.Builder()
+      .withType(QuranRow.HEADER)
+      .withText(getString(R.string.automatic_continue_reading))
+      .build()
+    elements[pos++] = QuranRow.Builder()
+      .withType(QuranRow.AUTOMATIC_READING_POSITION)
+      .withText(getString(R.string.automatic_continue_reading))
+      .withMetadata(quranActivity.automaticReadingDescription())
+      .withSura(automaticSura)
+      .withAyah(quranSettings.automaticLastAyah.coerceAtLeast(0))
+      .withPage(automaticPage)
+      .withImageResource(R.drawable.ic_goto_quran)
+      .withImageOverlayColorResource(R.color.icon_tint)
+      .build()
+
     if (readingBookmark != null) {
       elements[pos++] = quranRowFactory.fromReadingBookmarkHeader(activity)
       elements[pos++] = quranRowFactory.fromReadingBookmark(activity, readingBookmark)
@@ -196,13 +220,16 @@ class SuraListFragment : Fragment(), QuranTouchListener {
   }
 
   private fun readingBookmarkOffset(): Int {
-    return if (readingBookmark == null) 0 else READING_BOOKMARK_ROWS
+    return AUTOMATIC_READING_ROWS +
+      if (readingBookmark == null) 0 else READING_BOOKMARK_ROWS
   }
 
   override fun onClick(row: QuranRow, position: Int) {
     val activity = activity as? QuranActivity
     if (activity != null && row.page != 0) {
-      if (row.isAyahBookmark) {
+      if (row.isAutomaticReadingPosition) {
+        activity.continueReadingAutomatically()
+      } else if (row.isAyahBookmark) {
         activity.jumpToAndHighlight(row.page, row.sura, row.ayah)
       } else {
         activity.jumpTo(row.page)
@@ -216,6 +243,7 @@ class SuraListFragment : Fragment(), QuranTouchListener {
 
   companion object {
     private const val READING_BOOKMARK_ROWS = 2
+    private const val AUTOMATIC_READING_ROWS = 2
 
     fun newInstance(): SuraListFragment = SuraListFragment()
   }

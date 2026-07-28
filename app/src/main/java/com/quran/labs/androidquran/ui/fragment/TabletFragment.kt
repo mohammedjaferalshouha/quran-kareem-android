@@ -19,7 +19,6 @@ import com.quran.labs.androidquran.data.QuranDisplayData
 import com.quran.labs.androidquran.presenter.quran.QuranPagePresenter
 import com.quran.labs.androidquran.presenter.quran.QuranPageScreen
 import com.quran.labs.androidquran.presenter.quran.ayahtracker.AyahImageTrackerItem
-import com.quran.labs.androidquran.presenter.quran.ayahtracker.AyahSplitConsolidationTrackerItem
 import com.quran.labs.androidquran.presenter.quran.ayahtracker.AyahTrackerItem
 import com.quran.labs.androidquran.presenter.quran.ayahtracker.AyahTrackerPresenter
 import com.quran.labs.androidquran.presenter.quran.ayahtracker.AyahTrackerPresenter.AyahInteractionHandler
@@ -64,7 +63,6 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   private var translationScrollPosition = 0
   private var ayahCoordinatesError = false
   private var isSplitScreen = false
-  private var isQuranOnRight = true
   private var leftTranslation: TranslationView? = null
   private var rightTranslation: TranslationView? = null
   private var leftImageView: HighlightingImageView? = null
@@ -72,7 +70,7 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   private val compositeDisposable = CompositeDisposable()
   private var ayahTrackerItemsStorage: Array<AyahTrackerItem>? = null
   private var splitTranslationView: TranslationView? = null
-  private var splitImageView: HighlightingImageView? = null
+  private var splitQuranTextView: TranslationView? = null
   private var lastLongPressPage = -1
 
   private lateinit var mainView: TabletView
@@ -135,6 +133,8 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
         )
         val leftTranslation = (mainView.leftPage as QuranTranslationPageLayout).translationView
         val rightTranslation = (mainView.rightPage as QuranTranslationPageLayout).translationView
+        leftTranslation.setPageNumber(pageNumber + 1)
+        rightTranslation.setPageNumber(pageNumber)
         val pagerActivity = context as PagerActivity
         leftTranslation.setTranslationClickedListener { pagerActivity.toggleActionBar() }
         rightTranslation.setTranslationClickedListener { pagerActivity.toggleActionBar() }
@@ -149,31 +149,29 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   }
 
   private fun initSplitMode() {
-    val skip = quranInfo.skip
-    isQuranOnRight = (pageNumber + skip) % 2 == 1
-    val leftPageType =
-      if (isQuranOnRight) TabletView.TRANSLATION_PAGE else TabletView.QURAN_PAGE
-    val rightPageType =
-      if (isQuranOnRight) TabletView.QURAN_PAGE else TabletView.TRANSLATION_PAGE
-    mainView.init(leftPageType, rightPageType, pageViewFactory, pageNumber, pageNumber)
-    if (isQuranOnRight) {
-      splitTranslationView =
-        (mainView.leftPage as QuranTranslationPageLayout).translationView
-      splitImageView = if (mainView.rightPage is QuranImagePageLayout) {
-        (mainView.rightPage as QuranImagePageLayout).getImageView()
-      } else {
-        null
-      }
-    } else {
-      splitImageView = if (mainView.leftPage is QuranImagePageLayout) {
-        (mainView.leftPage as QuranImagePageLayout).getImageView()
-      } else {
-        null
-      }
-      splitTranslationView = (mainView.rightPage as QuranTranslationPageLayout).translationView
-    }
+    mainView.init(
+      TabletView.TRANSLATION_PAGE,
+      TabletView.TRANSLATION_PAGE,
+      null,
+      pageNumber,
+      pageNumber
+    )
+    splitTranslationView =
+      (mainView.leftPage as QuranTranslationPageLayout).translationView
+    splitQuranTextView =
+      (mainView.rightPage as QuranTranslationPageLayout).translationView
+
+    splitTranslationView?.setDisplayMode(TranslationView.DisplayMode.TRANSLATION_ONLY)
+    splitQuranTextView?.setDisplayMode(TranslationView.DisplayMode.QURAN_TEXT)
+    splitTranslationView?.setPageNumber(pageNumber)
+    splitQuranTextView?.setPageNumber(pageNumber)
+
     val pagerActivity = activity as PagerActivity
     splitTranslationView?.setTranslationClickedListener { pagerActivity.toggleActionBar() }
+    splitQuranTextView?.setTranslationClickedListener { pagerActivity.toggleActionBar() }
+    splitQuranTextView?.setReadingPositionChangedListener { ayahInfo ->
+      pagerActivity.rememberReadingPosition(pageNumber, ayahInfo.sura, ayahInfo.ayah, true)
+    }
     mainView.setPageController(this, pageNumber, quranInfo.skip)
   }
 
@@ -187,9 +185,6 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
     } else {
       if (isSplitScreen) {
         translationPresenter.value.bind(this)
-        if (!isCustomArabicPageType) {
-          quranPagePresenter.value.bind(this)
-        }
       } else {
         translationPresenter.value.bind(this)
       }
@@ -199,9 +194,9 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   override fun onPause() {
     if (mode == Mode.TRANSLATION) {
       val rightTranslation = rightTranslation
-      val splitTranslationView = splitTranslationView
-      if (isSplitScreen && splitTranslationView != null) {
-        translationScrollPosition = splitTranslationView.findFirstCompletelyVisibleItemPosition()
+      val splitQuranTextView = splitQuranTextView
+      if (isSplitScreen && splitQuranTextView != null) {
+        translationScrollPosition = splitQuranTextView.findFirstCompletelyVisibleItemPosition()
       } else if (rightTranslation != null) {
         translationScrollPosition = rightTranslation.findFirstCompletelyVisibleItemPosition()
       }
@@ -216,7 +211,6 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
     } else {
       if (isSplitScreen) {
         translationPresenter.value.unbind(this)
-        quranPagePresenter.value.unbind(this)
       } else {
         translationPresenter.value.unbind(this)
       }
@@ -230,6 +224,7 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
     if (mode == Mode.TRANSLATION) {
       if (isSplitScreen) {
         splitTranslationView?.refresh(quranSettings)
+        splitQuranTextView?.refresh(quranSettings)
       } else {
         rightTranslation?.refresh(quranSettings)
         leftTranslation?.refresh(quranSettings)
@@ -242,7 +237,7 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
       if (isSplitScreen) {
         outState.putInt(
           SI_RIGHT_TRANSLATION_SCROLL_POSITION,
-          splitTranslationView!!.findFirstCompletelyVisibleItemPosition()
+          splitQuranTextView!!.findFirstCompletelyVisibleItemPosition()
         )
       } else {
         outState.putInt(
@@ -298,44 +293,11 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
         }
       } else if (mode == Mode.TRANSLATION) {
         if (isSplitScreen) {
-          val splitTranslationView = splitTranslationView!!
-          val (translationItem, imageItem) = if (isQuranOnRight) {
-            val translationItem = AyahTranslationTrackerItem(pageNumber, quranInfo, splitTranslationView)
-            val splitImageView = splitImageView
-            if (splitImageView != null) {
-              translationItem to AyahImageTrackerItem(
-                pageNumber,
-                quranInfo,
-                quranDisplayData,
-                true,
-                imageDrawHelpers,
-                splitImageView
-              )
-            } else {
-              translationItem to null
-            }
-          } else {
-            val translationItem = AyahTranslationTrackerItem(pageNumber, quranInfo, splitTranslationView)
-            val splitImageView = splitImageView
-            if (splitImageView != null) {
-              translationItem to AyahImageTrackerItem(pageNumber,
-                quranInfo,
-                quranDisplayData,
-                false,
-                imageDrawHelpers,
-                splitImageView
-              )
-            } else {
-              translationItem to null
-            }
-          }
-
-          val splitItem = if (imageItem == null) {
-            AyahTranslationTrackerItem(pageNumber, quranInfo, splitTranslationView)
-          } else {
-            AyahSplitConsolidationTrackerItem(pageNumber, imageItem, translationItem)
-          }
-          arrayOf(splitItem)
+          val quranTextItem =
+            AyahTranslationTrackerItem(pageNumber, quranInfo, splitQuranTextView!!)
+          val translationItem =
+            AyahTranslationTrackerItem(pageNumber, quranInfo, splitTranslationView!!)
+          arrayOf(quranTextItem, translationItem)
         } else {
           val left = AyahTranslationTrackerItem(pageNumber + 1, quranInfo, leftTranslation!!)
           val right = AyahTranslationTrackerItem(pageNumber, quranInfo, rightTranslation!!)
@@ -378,9 +340,7 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   }
 
   override fun setPageBitmap(page: Int, pageBitmap: Bitmap) {
-    if (isSplitScreen && mode == Mode.TRANSLATION) {
-      splitImageView!!.setImageDrawable(BitmapDrawable(resources, pageBitmap))
-    } else {
+    if (!(isSplitScreen && mode == Mode.TRANSLATION)) {
       val imageView: ImageView? = if (page == pageNumber) rightImageView else leftImageView
       imageView?.setImageDrawable(BitmapDrawable(resources, pageBitmap))
     }
@@ -407,11 +367,16 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
     verses: List<QuranAyahInfo>
   ) {
     if (isSplitScreen) {
+      splitTranslationView?.setPageNumber(page)
+      splitQuranTextView?.setPageNumber(page)
       splitTranslationView?.setVerses(quranDisplayData, translations, verses)
+      splitQuranTextView?.setVerses(quranDisplayData, emptyArray(), verses)
     } else {
       if (page == pageNumber) {
+        rightTranslation?.setPageNumber(page)
         rightTranslation?.setVerses(quranDisplayData, translations, verses)
       } else if (page == pageNumber + 1) {
+        leftTranslation?.setPageNumber(page)
         leftTranslation?.setVerses(quranDisplayData, translations, verses)
       }
     }
@@ -419,7 +384,7 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
 
   override fun updateScrollPosition() {
     if (isSplitScreen) {
-      splitTranslationView?.setScrollPosition(translationScrollPosition)
+      splitQuranTextView?.setScrollPosition(translationScrollPosition)
     } else {
       rightTranslation?.setScrollPosition(translationScrollPosition)
     }
@@ -433,11 +398,13 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
     }
   }
 
+  override val shouldLoadTranslations: Boolean
+    get() = isSplitScreen
+
   fun cleanup() {
     Timber.d("cleaning up page %d", pageNumber)
     leftImageView?.setImageDrawable(null)
     rightImageView?.setImageDrawable(null)
-    splitImageView?.setImageDrawable(null)
   }
 
   override fun setPageCoordinates(pageCoordinates: PageCoordinates) {

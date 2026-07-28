@@ -216,6 +216,7 @@ class QuranListAdapter(
     return !isEditable ||                     // anything in surahs or juzs
         selected.isBookmark ||                // actual bookmarks
         selected.isReadingBookmark ||         // the non-editable reading bookmark shortcut
+        selected.isAutomaticReadingPosition || // the automatic continue reading shortcut
         selected.rowType == QuranRow.NONE ||  // the actual "current page"
         selected.isBookmarkHeader             // tags
   }

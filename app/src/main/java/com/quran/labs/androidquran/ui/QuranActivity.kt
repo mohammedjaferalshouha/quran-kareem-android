@@ -8,10 +8,12 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
@@ -39,6 +41,7 @@ import com.quran.labs.androidquran.R
 import com.quran.labs.androidquran.SearchActivity
 import com.quran.labs.androidquran.ShortcutsActivity
 import com.quran.labs.androidquran.data.Constants
+import com.quran.labs.androidquran.data.QuranDisplayData
 import com.quran.labs.androidquran.feature.reading.model.LatestPageTracker
 import com.quran.labs.androidquran.presenter.data.QuranIndexEventLogger
 import com.quran.labs.androidquran.presenter.translation.TranslationManagerPresenter
@@ -54,6 +57,7 @@ import com.quran.labs.androidquran.ui.fragment.TagBookmarkDialog.OnBookmarkTagsU
 import com.quran.labs.androidquran.ui.helpers.JumpDestination
 import com.quran.labs.androidquran.util.AudioUtils
 import com.quran.labs.androidquran.util.QuranSettings
+import com.quran.labs.androidquran.util.ThemeUtil
 import com.quran.labs.androidquran.util.QuranUtils
 import com.quran.labs.androidquran.view.SlidingTabLayout
 import com.quran.mobile.di.ExtraScreenProvider
@@ -115,9 +119,12 @@ class QuranActivity : AppCompatActivity(),
   private var backStackListener: FragmentManager.OnBackStackChangedListener? = null
   private lateinit var searchItemCollapserCallback: OnBackPressedCallback
   private lateinit var supportActionModeClearingCallback: OnBackPressedCallback
+  private var lastExitBackPressedAt = 0L
 
   @Inject
   lateinit var settings: QuranSettings
+  @Inject
+  lateinit var quranDisplayData: QuranDisplayData
   @Inject
   lateinit var audioUtils: AudioUtils
   @Inject
@@ -276,6 +283,23 @@ class QuranActivity : AppCompatActivity(),
       supportFragmentManager.addOnBackStackChangedListener(listener)
     }
 
+    val exitConfirmationCallback = object : OnBackPressedCallback(true) {
+      override fun handleOnBackPressed() {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastExitBackPressedAt <= EXIT_CONFIRMATION_WINDOW) {
+          finishAfterTransition()
+        } else {
+          lastExitBackPressedAt = now
+          Toast.makeText(
+            this@QuranActivity,
+            R.string.press_back_again_to_exit,
+            Toast.LENGTH_SHORT
+          ).show()
+        }
+      }
+    }
+    onBackPressedDispatcher.addCallback(this, exitConfirmationCallback)
+
     // collapse the search view if it's expanded on back press
     val searchItemExpanded = searchItem?.isActionViewExpanded ?: false
     searchItemCollapserCallback = object : OnBackPressedCallback(searchItemExpanded) {
@@ -296,6 +320,8 @@ class QuranActivity : AppCompatActivity(),
         supportActionMode?.finish()
       }
     }
+    onBackPressedDispatcher.addCallback(this, searchItemCollapserCallback)
+    onBackPressedDispatcher.addCallback(this, supportActionModeClearingCallback)
   }
 
   private fun isRtl(): Boolean {
@@ -335,6 +361,32 @@ class QuranActivity : AppCompatActivity(),
     return true
   }
 
+  override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+    val isNightMode = settings.isNightMode
+    menu.findItem(R.id.night_mode)?.apply {
+      isChecked = isNightMode
+      setIcon(if (isNightMode) R.drawable.ic_night_mode else R.drawable.ic_day_mode)
+    }
+    val lastPage = settings.automaticLastPage
+    val lastSura = settings.automaticLastSura
+    val lastAyah = settings.automaticLastAyah
+    menu.findItem(R.id.last_page)?.apply {
+      isVisible = true
+      title = if (lastSura > 0 && lastAyah > 0) {
+        getString(
+          R.string.continue_reading_ayah,
+          quranDisplayData.getSuraName(this@QuranActivity, lastSura, false),
+          lastAyah
+        )
+      } else if (lastPage != Constants.NO_PAGE) {
+        getString(R.string.continue_reading_page, lastPage)
+      } else {
+        getString(R.string.menu_jump_last_page)
+      }
+    }
+    return super.onPrepareOptionsMenu(menu)
+  }
+
   override fun onOptionsItemSelected(item: MenuItem): Boolean {
     when (val itemId = item.itemId) {
       R.id.settings -> {
@@ -342,6 +394,11 @@ class QuranActivity : AppCompatActivity(),
       }
       R.id.last_page -> {
         jumpToLastPage()
+      }
+      R.id.night_mode -> {
+        val isNightMode = !item.isChecked
+        settings.setNightMode(isNightMode)
+        ThemeUtil.setTheme(if (isNightMode) Constants.THEME_DARK else Constants.THEME_LIGHT)
       }
       R.id.help -> {
         startActivity(Intent(this, HelpActivity::class.java))
@@ -409,11 +466,48 @@ class QuranActivity : AppCompatActivity(),
   }
 
   private fun jumpToLastPage() {
+    val automaticPage = settings.automaticLastPage
+    val automaticSura = settings.automaticLastSura
+    val automaticAyah = settings.automaticLastAyah
+    if (automaticPage != Constants.NO_PAGE) {
+      val intent = Intent(this, PagerActivity::class.java).apply {
+        putExtra("page", automaticPage)
+        putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
+        if (automaticSura > 0 && automaticAyah > 0) {
+          putExtra(PagerActivity.EXTRA_HIGHLIGHT_SURA, automaticSura)
+          putExtra(PagerActivity.EXTRA_HIGHLIGHT_AYAH, automaticAyah)
+        }
+      }
+      startActivity(intent)
+      return
+    }
+
     lifecycleScope.launch {
       val recentPage = latestPage()
       jumpTo(
         if (recentPage == Constants.NO_PAGE) 1 else recentPage
       )
+    }
+  }
+
+  fun continueReadingAutomatically() {
+    jumpToLastPage()
+  }
+
+  fun automaticReadingDescription(): String {
+    val lastPage = settings.automaticLastPage
+    val lastSura = settings.automaticLastSura
+    val lastAyah = settings.automaticLastAyah
+    return when {
+      lastSura > 0 && lastAyah > 0 -> {
+        getString(
+          R.string.continue_reading_ayah,
+          quranDisplayData.getSuraName(this, lastSura, false),
+          lastAyah
+        )
+      }
+      lastPage != Constants.NO_PAGE -> getString(R.string.continue_reading_page, lastPage)
+      else -> getString(R.string.automatic_continue_reading_empty)
     }
   }
 
@@ -457,7 +551,7 @@ class QuranActivity : AppCompatActivity(),
   override fun jumpTo(page: Int) {
     val i = Intent(this, PagerActivity::class.java)
     i.putExtra("page", page)
-    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, settings.wasShowingTranslation)
+    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
     startActivity(i)
   }
 
@@ -466,7 +560,7 @@ class QuranActivity : AppCompatActivity(),
     i.putExtra("page", page)
     i.putExtra(PagerActivity.EXTRA_HIGHLIGHT_SURA, sura)
     i.putExtra(PagerActivity.EXTRA_HIGHLIGHT_AYAH, ayah)
-    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, settings.wasShowingTranslation)
+    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
     startActivity(i)
   }
 
@@ -556,6 +650,7 @@ class QuranActivity : AppCompatActivity(),
   }
 
   companion object {
+    private const val EXIT_CONFIRMATION_WINDOW = 2000L
     private val TITLES = intArrayOf(
         R.string.quran_sura,
         R.string.quran_juz2,

@@ -71,6 +71,9 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
   private lateinit var messageView: TextView
   private lateinit var warningView: TextView
   private lateinit var buttonGetTranslations: Button
+  private lateinit var suraResultView: View
+  private lateinit var suraResultTitle: TextView
+  private lateinit var suraResultMetadata: TextView
 
   @Inject
   lateinit var quranInfo: QuranInfo
@@ -134,6 +137,9 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
     messageView = findViewById(R.id.search_area)
     warningView = findViewById(R.id.search_warning)
     buttonGetTranslations = findViewById(R.id.btnGetTranslations)
+    suraResultView = findViewById(R.id.sura_result)
+    suraResultTitle = findViewById(R.id.sura_result_title)
+    suraResultMetadata = findViewById(R.id.sura_result_metadata)
     buttonGetTranslations.setOnClickListener { v: View? ->
       var intent: Intent?
       if (downloadArabicSearchDb) {
@@ -241,6 +247,14 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
   }
 
   override fun onLoadFinished(loader: Loader<Cursor?>, cursor: Cursor?) {
+    val matchedSura = quranDisplayData.findSurasByName(this, query).firstOrNull()
+    if (matchedSura != null) {
+      showSuraResult(matchedSura)
+    } else {
+      suraResultView.visibility = View.GONE
+      suraResultView.setOnClickListener(null)
+    }
+
     val containsArabic = QuranUtils.doesStringContainArabic(query)
     val showArabicWarning = containsArabic &&
         !quranFileUtils.hasTranslation(QuranDataProvider.QURAN_ARABIC_DATABASE)
@@ -258,11 +272,17 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
     }
 
     if (cursor == null) {
-      messageView.text = getString(R.string.no_results, query)
+      if (matchedSura == null) {
+        messageView.text = getString(R.string.no_results, query)
+      } else {
+        messageView.text = resources.getQuantityString(
+          R.plurals.search_results, 1, query, 1
+        )
+      }
       // cursor is null either when the query length is less than 3 characters or when
       // there are no valid databases to search at all. in this case, if it's not an
       // Arabic search, show the "get translations" button.
-      if (!containsArabic && query.length > 2) {
+      if (matchedSura == null && !containsArabic && query.length > 2) {
         buttonGetTranslations.setText(R.string.get_translations)
         buttonGetTranslations.visibility = View.VISIBLE
       }
@@ -271,7 +291,7 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
       }
     } else {
       // Display the number of results
-      val count = cursor.count
+      val count = cursor.count + if (matchedSura == null) 0 else 1
       val countString = getResources().getQuantityString(
         R.plurals.search_results, count, query, count
       )
@@ -332,6 +352,12 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
         showResults(query)
         return
       }
+      val suraResult = QuranDataProvider.decodeSuraResultId(id)
+      if (suraResult != null) {
+        jumpToSura(suraResult)
+        finish()
+        return
+      }
       if (id !in 1..quranInfo.getNumberOfAyahsInQuran()) return
 
       val (sura, ayah) = quranInfo.getSuraAyahFromAyahId(id)
@@ -382,6 +408,27 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
       )
     }
     startActivity(intent)
+  }
+
+  private fun showSuraResult(sura: Int) {
+    val ayahs = quranInfo.getNumberOfAyahs(sura)
+    val page = quranInfo.getPageNumberForSura(sura)
+    suraResultTitle.text = quranDisplayData.getSuraName(this, sura, true)
+    suraResultMetadata.text = getString(
+      R.string.search_sura_result_metadata,
+      QuranUtils.getLocalizedNumber(ayahs),
+      QuranUtils.getLocalizedNumber(page)
+    )
+    suraResultView.visibility = View.VISIBLE
+    suraResultView.setOnClickListener { jumpToSura(sura) }
+  }
+
+  private fun jumpToSura(sura: Int) {
+    jumpToResult(
+      sura = sura,
+      ayah = 1,
+      jumpToTranslation = false
+    )
   }
 
   private fun canOpenReaderDirectly(): Boolean {

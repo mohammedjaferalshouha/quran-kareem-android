@@ -28,12 +28,20 @@ class TranslationPresenter @Inject internal constructor(
   ) {
 
   suspend fun refresh() {
+    val translationsFileNames =
+      if (translationScreen?.shouldLoadTranslations == true) {
+        getTranslations(quranSettings)
+      } else {
+        emptyList()
+      }
     pages
       .map {
         withContext(Dispatchers.IO) {
           getVerses(
-            quranSettings.wantArabicInTranslationView(),
-            getTranslations(quranSettings), quranInfo.getVerseRangeForPage(it)
+            getArabic = true,
+            translationsFileNames = translationsFileNames,
+            verseRange = quranInfo.getVerseRangeForPage(it),
+            fallbackToAvailableTranslations = false
           )
         }
       }
@@ -59,6 +67,9 @@ class TranslationPresenter @Inject internal constructor(
   }
 
   interface TranslationScreen {
+    val shouldLoadTranslations: Boolean
+      get() = false
+
     fun setVerses(
       page: Int,
       translations: Array<LocalTranslation>,

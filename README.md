@@ -1,77 +1,139 @@
-<div align="center">
+<div dir="rtl" align="right">
 
-<img src="https://raw.githubusercontent.com/quran/quran_android/main/app/src/madani/res/drawable-xxhdpi/icon.png" alt='Quran for Android logo'/>
+<p align="center">
+  <img src="docs/images/banner.svg" alt="القرآن الكريم" width="100%">
+</p>
 
-# Quran for Android
+<p align="center">
+  <a href="https://github.com/mohammedjaferalshouha/quran-kareem-android/releases/latest">تنزيل أحدث إصدار</a>
+  ·
+  <a href="README.en.md">English</a>
+  ·
+  <a href="docs/SETTINGS_AR.md">دليل الإعدادات</a>
+  ·
+  <a href="SOURCES.md">المصادر والتراخيص</a>
+</p>
 
-[![Build Status](https://github.com/quran/quran_android/actions/workflows/build.yml/badge.svg)](https://github.com/quran/quran_android/actions/workflows/build.yml)
-[![Version](https://img.shields.io/github/v/release/quran/quran_android?include_prereleases&sort=semver)](https://github.com/quran/quran_android/releases/latest)
-[![Github Downloads](https://img.shields.io/github/downloads/quran/quran_android/total?logo=Github)](https://github.com/quran/quran_android/releases)
+# القرآن الكريم
 
-This is a simple (Madani based) Quran app for Android.
+تطبيق أندرويد مفتوح المصدر لقراءة القرآن الكريم بالرسم العثماني، صُمّم بواجهة عربية واضحة وتجربة قراءة مرنة، مع التلاوة الصوتية، البحث، المرجعيات، الاستمرار التلقائي من آخر موضع، الوضع الليلي، وعرض صفحتين متجاورتين.
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-      alt='Get it on Google Play'
-      height="80">](https://play.google.com/store/apps/details?id=com.quran.labs.androidquran)
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png"
-      alt="Get it at IzzyOnDroid"
-      height="80">](https://apt.izzysoft.de/packages/com.quran.labs.androidquran)
-[<img src="https://user-images.githubusercontent.com/69304392/148696068-0cfea65d-b18f-4685-82b5-329a330b1c0d.png"
-      alt='Get it on GitHub'
-      height="80">](https://github.com/quran/quran_android/releases/latest)
+الإصدار الحالي:
 
-<div align="left">
+`1.0.0`
 
-## Credits
+معرّف التطبيق:
 
-* madani images from [quran images project](https://github.com/quran/quran.com-images) on github.
-* qaloon images used with permission of Nous Memes Editions Et Diffusion (Tunisia).
-* naskh images used with permission of SHL Info Systems.
-* translation, tafsir and Arabic data come from [quranenc](https://quranenc.com) and [King Saud University](https://quran.ksu.edu.sa). a small number of translations also come from [tanzil](http://tanzil.net).
+`com.moham.qurankareem`
 
-## Contributing
+## أبرز المميزات
 
-If you'd like to contribute, please take a look at the [PRs Welcome](https://github.com/quran/quran_android/issues?q=is%3Aissue+is%3Aopen+label%3A%22PRs+Welcome%22) label on the issue tracker. For new features, please open an issue to discuss it before beginning implementation.
+- عرض نص قرآني مرن مطابق لترقيم صفحات مصحف المدينة من الصفحة الأولى حتى الصفحة رقم ٦٠٤.
+- الانتقال المتتابع بين الصفحات والسور، بما في ذلك الصفحات المشتركة بين سورتين.
+- اسم السورة ورقم الصفحة بتنسيق واضح داخل كل صفحة.
+- عرض صفحة واحدة أو صفحتين متجاورتين في الوضع الأفقي.
+- خيار عرض النص القرآني والترجمة جنبًا إلى جنب.
+- بحث سريع من الشاشة الرئيسية ومن داخل السورة.
+- البحث باسم السورة أو بجزء من الآية، ثم الانتقال إلى موضع النتيجة بدقة.
+- حفظ موضع القراءة تلقائيًا وإظهار زر «متابعة القراءة».
+- مرجعيات للصفحات والآيات مع تصنيفات.
+- ضغط مطوّل على الآية لإظهار إجراءات الاستماع والمشاركة والمرجعية والتفسير.
+- شريط أدوات للآية يبقى داخل حدود الشاشة.
+- اختيار القارئ وتشغيل التلاوة وتنزيلها للاستماع دون اتصال.
+- تكبير وتصغير النص بالأزرار مع إمكانية التصغير عن الحجم الافتراضي.
+- وضع فاتح ووضع مظلم مع اختصار سريع في الشاشة الرئيسية وداخل السورة.
+- إظهار معلومات موضع القراءة: السورة، الآية، الصفحة، الجزء، الحزب وربع الحزب.
+- إعدادات للاتجاه، سطوع النص والخلفية، حجم خط الترجمة، ومفاتيح مستوى الصوت.
+- واجهة عربية من اليمين إلى اليسار، دون إعلانات أو حساب إلزامي.
 
-Use [`quran_android-code_style.xml`](https://github.com/quran/quran_android/blob/main/quran_android-code_style.xml) for Android Studio / IntelliJ code styles. Import it by copying it to the Android Studio/IntelliJ IDEA codestyles folder. For Android Studio, that folder is located at `~/.AndroidStudio[Version]/config/codestyles` (the root folder name may differ depending on the host machine and Android Studio version, but the rest of the path should be same). After copying the `quran_android-code_style.xml`, go to Code Style preferences screen and choose `quran_android-code_style` from Code Style Schemes.
+## صور التطبيق
 
-Please set your Android studio kotlin code style based on [Kotlin Coding Conventions](https://kotlinlang.org/docs/reference/coding-conventions.html). You can configure it from menu Settings | Editor | Code Style | Kotlin, click on "Set from…" link in the upper right corner, and select "Predefined style / Kotlin style guide" from the menu.
+<p align="center">
+  <img src="docs/images/reading-screen.png" alt="شاشة القراءة" width="260">
+  <img src="docs/images/search-suggestions.png" alt="البحث السريع" width="260">
+  <img src="docs/images/search-results.png" alt="نتائج البحث" width="260">
+</p>
 
-May Allah reward all the awesome [Contributors and Translators](https://github.com/quran/quran_android/blob/main/CONTRIBUTORS.md).
+<p align="center">
+  <img src="docs/images/two-page-reading.png" alt="عرض صفحتين متجاورتين" width="760">
+</p>
 
+> الصور مأخوذة من نسخ التطوير المتعاقبة، وقد يختلف ترتيب بعض الأزرار قليلًا عن أحدث إصدار.
 
-## Setup
+## التنزيل والتثبيت
 
-### Command Line
+1. افتح صفحة الإصدارات.
+2. نزّل ملف التطبيق من أحدث إصدار.
+3. تحقّق من بصمة الملف المنشورة ضمن الإصدار.
+4. اسمح بالتثبيت من المصدر الذي استخدمته لتنزيل الملف عند طلب أندرويد ذلك.
+5. ثبّت التطبيق.
 
-You can build Quran from the command line by running `./gradlew assembleMadaniDebug`.
+صفحة الإصدارات:
 
-### Android Studio / IntelliJ
+`https://github.com/mohammedjaferalshouha/quran-kareem-android/releases`
 
-Choose "Import Project," and choose the `build.gradle` file from the top level directory. Under "Build Variants" (a tab on the left side), choose "madaniDebug."
+## الخصوصية
 
-## Using Quran for Android code in other projects
+- لا توجد إعلانات.
+- لا يلزم إنشاء حساب لاستخدام القراءة والمرجعيات.
+- تُحفظ المرجعيات وآخر موضع قراءة والإعدادات محليًا على الجهاز.
+- الاتصال بالإنترنت مطلوب عند تنزيل التلاوات أو الترجمات أو بيانات إضافية.
+- لا يحتوي هذا الإصدار على تحليلات استخدام أو تقارير أعطال خارجية.
 
-The intention behind open sourcing Quran for Android is two fold - first, to allow developers to help contribute to the app, thus speeding up the development of new features and ideas. Second, to give back to the community and serve as a code reference.
+التفاصيل:
 
-Quran for Android costs money to run - all the data (pages, audio files, and translations) are hosted on servers that people volunteer their money to pay for every month. Moreover, the data itself is the work of various scholars, organizations, or reciters, many of whom provide this data free for usage for the benefit of the ummah.
+[سياسة الخصوصية](PRIVACY.md)
 
-Therefore, people planning on taking this project and profiting from it (by way of ads, in app purchases, etc) are in fact stealing from the work of the contributors of this project, and from the people who volunteer to pay for the servers (since they increase the bandwidth costs on them instead of covering them themselves).
+## البناء من المصدر
 
-Please keep use of this code for non-profit purposes only. Also, please note that the project is under the GPL 3 license, which requires that modifications to this code be open sourced as well. Please note that the data is licensed under the various licenses of the data's authors (typically, this is [CC BY-NC-ND](https://creativecommons.org/licenses/by-nc-nd/2.0/), but may differ depending on the source of the data).
+المتطلبات الأساسية:
 
+- أندرويد ستوديو حديث
+- حزمة تطوير جافا رقم ١٧ أو أحدث مدعومة من إعدادات المشروع
+- حزمة تطوير أندرويد
 
-## Open Source Projects Used
+لبناء نسخة الاختبار على ويندوز:
 
-* [AndroidX](https://developer.android.com/jetpack/androidx/)
-* [Kotlin](https://kotlinlang.org)
-* [Material Design Components](https://github.com/material-components/material-components-android)
-* [AndroidSlidingUpPanel](https://github.com/umano/AndroidSlidingUpPanel)
-* [OkHttp](https://github.com/square/okhttp)
-* [RxJava 2](https://github.com/ReactiveX/RxJava)
-* [RxAndroid](https://github.com/ReactiveX/RxAndroid)
-* [Moshi](https://github.com/square/moshi)
-* [Dagger2](https://google.github.io/dagger/)
-* [Timber](https://github.com/JakeWharton/timber)
-* [dnsjava](http://dnsjava.org)
-* [NumberPicker](https://github.com/ShawnLin013/NumberPicker)
+```powershell
+.\gradlew.bat assembleMadaniDebug
+```
+
+ولتجهيز إصدار موقّع، استخدم خصائص توقيع محلية لا تُرفع إلى المستودع:
+
+```powershell
+.\gradlew.bat assembleMadaniRelease -PSTORE_FILE="PATH_TO_KEYSTORE" -PSTORE_PASSWORD="STORE_PASSWORD" -PKEY_ALIAS="KEY_ALIAS" -PKEY_PASSWORD="KEY_PASSWORD"
+```
+
+التفاصيل الكاملة:
+
+[دليل البناء](docs/BUILD_AR.md)
+
+## المصادر والحقوق
+
+هذا العمل نسخة معدّلة مبنية على مشروع:
+
+`Quran for Android`
+
+المستودع الأصلي:
+
+`https://github.com/quran/quran_android`
+
+الكود منشور وفق:
+
+`GNU GPL-3.0`
+
+النصوص القرآنية والترجمات والتفاسير والخطوط والتلاوات وبياناتها لها مصادر وأصحاب حقوق مستقلون، ولا يعني ترخيص كود التطبيق أن جميع الأصول لها الترخيص نفسه. راجع قائمة المصادر وحدود الاستخدام قبل إعادة التوزيع أو الاستخدام التجاري.
+
+[المصادر والتراخيص بالتفصيل](SOURCES.md)
+
+## المساهمة
+
+نرحب بالإبلاغ عن الأخطاء واقتراح التحسينات وإرسال التعديلات المتوافقة مع الرخصة.
+
+[دليل المساهمة](CONTRIBUTING.md)
+
+## الضمان
+
+يُقدّم البرنامج كما هو، دون ضمان. عند الإبلاغ عن خطأ متعلق بنص آية أو رقم صفحة أو موضع سورة، يُرجى ذكر السورة والآية والصفحة ونوع الجهاز.
+
+</div>

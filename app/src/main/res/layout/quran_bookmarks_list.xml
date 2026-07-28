@@ -5,10 +5,53 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-  <androidx.compose.ui.platform.ComposeView
-      android:id="@+id/sync_sign_in_card"
+  <LinearLayout
+      android:id="@+id/automatic_continue_reading"
       android:layout_width="match_parent"
-      android:layout_height="wrap_content" />
+      android:layout_height="wrap_content"
+      android:background="?attr/selectableItemBackground"
+      android:clickable="true"
+      android:focusable="true"
+      android:gravity="center_vertical"
+      android:minHeight="76dp"
+      android:orientation="horizontal"
+      android:paddingStart="20dp"
+      android:paddingTop="12dp"
+      android:paddingEnd="20dp"
+      android:paddingBottom="12dp">
+
+    <ImageView
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="@string/automatic_continue_reading"
+        android:src="@drawable/ic_goto_quran"
+        app:tint="@color/accent_color" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+      <TextView
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text="@string/automatic_continue_reading"
+          android:textColor="?android:attr/textColorPrimary"
+          android:textSize="18sp"
+          android:textStyle="bold" />
+
+      <TextView
+          android:id="@+id/automatic_continue_reading_description"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="3dp"
+          android:text="@string/automatic_continue_reading_empty"
+          android:textColor="?android:attr/textColorSecondary"
+          android:textSize="14sp" />
+    </LinearLayout>
+  </LinearLayout>
 
   <FrameLayout
       android:layout_width="match_parent"

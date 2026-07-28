@@ -1,0 +1,52 @@
+name: بلاغ خطأ
+description: الإبلاغ عن مشكلة في التطبيق
+title: "[خطأ] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: وصف المشكلة
+      description: اشرح ما حدث وما الذي توقعت حدوثه
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: خطوات إعادة المشكلة
+      placeholder: |
+        1. افتح...
+        2. اضغط...
+        3. تظهر المشكلة...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: إصدار التطبيق
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: الجهاز وإصدار أندرويد
+    validations:
+      required: true
+  - type: textarea
+    id: quran-location
+    attributes:
+      label: موضع القرآن إن كان مرتبطًا
+      description: السورة والآية والصفحة
+  - type: textarea
+    id: media
+    attributes:
+      label: صورة أو فيديو
+      description: أرفق صورة أو تسجيلًا إن أمكن
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: تأكيد
+      options:
+        - label: تحققت أن البلاغ نفسه غير موجود
+          required: true

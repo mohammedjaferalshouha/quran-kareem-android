@@ -14,12 +14,10 @@ import androidx.preference.CheckBoxPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.PreferenceGroup
-import com.quran.data.source.PageProvider
 import com.quran.labs.androidquran.QuranAdvancedPreferenceActivity
 import com.quran.labs.androidquran.QuranApplication
 import com.quran.labs.androidquran.R
 import com.quran.labs.androidquran.data.Constants
-import com.quran.labs.androidquran.pageselect.PageSelectActivity
 import com.quran.labs.androidquran.ui.TranslationManagerActivity
 import com.quran.labs.androidquran.util.OrientationLockUtils
 import com.quran.labs.androidquran.util.QuranUtils
@@ -29,9 +27,6 @@ import com.quran.mobile.feature.downloadmanager.AudioManagerActivity
 import dev.zacsweers.metro.Inject
 
 class QuranSettingsFragment : PreferenceFragmentCompat() {
-
-  @Inject
-  lateinit var pageTypes: Map<@JvmSuppressWildcards String, @JvmSuppressWildcards PageProvider>
 
   @Inject
   lateinit var extraPreferences: Set<@JvmSuppressWildcards ExtraPreferencesProvider>
@@ -89,12 +84,6 @@ class QuranSettingsFragment : PreferenceFragmentCompat() {
       true
     }
 
-    val pageChangePref: Preference? = findPreference(Constants.PREF_PAGE_TYPE)
-    if (pageTypes.size < 2 && pageChangePref != null) {
-      val readingPrefs: Preference? = findPreference(Constants.PREF_READING_CATEGORY)
-      (readingPrefs as PreferenceGroup).removePreference(pageChangePref)
-    }
-
     // add additional injected preferences (if any)
     extraPreferences
       .sortedBy { it.order }
@@ -127,10 +116,6 @@ class QuranSettingsFragment : PreferenceFragmentCompat() {
     val key = preference.key
     if ("key_prefs_advanced" == key) {
       val intent = Intent(activity, QuranAdvancedPreferenceActivity::class.java)
-      startActivity(intent)
-      return true
-    } else if (Constants.PREF_PAGE_TYPE == key) {
-      val intent = Intent(activity, PageSelectActivity::class.java)
       startActivity(intent)
       return true
     }
