@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.os.SystemClock
 import android.preference.PreferenceManager
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
@@ -191,6 +192,9 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   private var bookmarksMenuItem: MenuItem? = null
   private var isCurrentPageReadingBookmarked = false
   private var readingBookmarkToastView: View? = null
+  private var clearReadingBookmarkHighlightOnTap = false
+  private var readingBookmarkHighlightReadyAt = 0L
+  private var verticalPageTransitionInProgress = false
 
   private var translationNames: Array<String> = emptyArray()
   private var translations: List<LocalTranslation>? = null
@@ -346,7 +350,9 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
 
   private fun updateDualPageMode() {
     val lastIsDualPages = isDualPages
-    val nextIsDualPages = QuranUtils.isDualPages(this, quranScreenInfo, isFoldableDeviceOpenAndVertical)
+    val nextIsDualPages =
+      QuranUtils.isDualPages(this, quranScreenInfo, isFoldableDeviceOpenAndVertical) &&
+          !quranSettings.isVerticalPageNavigation
     if (lastIsDualPages != nextIsDualPages) {
       // due to the conversion after setting the adapter, we need this page to be
       // the page _before_ we switched from dual to single or vice versa. otherwise,
@@ -380,7 +386,9 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
 
   private fun initialize(savedInstanceState: Bundle?) {
     var shouldAdjustPageNumber = false
-    isDualPages = QuranUtils.isDualPages(this, quranScreenInfo, isFoldableDeviceOpenAndVertical)
+    isDualPages =
+      QuranUtils.isDualPages(this, quranScreenInfo, isFoldableDeviceOpenAndVertical) &&
+          !quranSettings.isVerticalPageNavigation
     isSplitScreen = quranSettings.isQuranSplitWithTranslation
     audioStatusRepositoryBridge = AudioStatusRepositoryBridge(
       audioStatusRepository,
@@ -426,6 +434,8 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
         showingTranslation = true
         val highlightedSura = extras.getInt(EXTRA_HIGHLIGHT_SURA, -1)
         val highlightedAyah = extras.getInt(EXTRA_HIGHLIGHT_AYAH, -1)
+        clearReadingBookmarkHighlightOnTap =
+          extras.getBoolean(EXTRA_CLEAR_HIGHLIGHT_ON_TAP, false)
 
         if (highlightedSura > -1 && highlightedAyah > -1) {
           readingEventPresenterBridge.setSelection(
@@ -433,6 +443,9 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
             highlightedAyah,
             true
           )
+          if (clearReadingBookmarkHighlightOnTap) {
+            scheduleReadingBookmarkHighlight(highlightedSura, highlightedAyah)
+          }
         }
       }
     }
@@ -513,6 +526,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     nonRestoringViewPager.setIsDualPagesInLandscape(
       QuranUtils.isDualPagesInLandscape(this, quranScreenInfo)
     )
+    nonRestoringViewPager.setVerticalPagingEnabled(quranSettings.isVerticalPageNavigation)
 
     viewPager = nonRestoringViewPager
     viewPager.setAdapter(pagerAdapter)
@@ -757,7 +771,24 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   }
 
   private fun onPageClicked() {
+    if (clearReadingBookmarkHighlightOnTap) {
+      if (SystemClock.uptimeMillis() < readingBookmarkHighlightReadyAt) {
+        return
+      }
+      clearReadingBookmarkHighlightOnTap = false
+      readingBookmarkHighlightReadyAt = 0L
+      readingEventPresenterBridge.clearSelectedAyah()
+    }
     toggleActionBar()
+  }
+
+  private fun scheduleReadingBookmarkHighlight(sura: Int, ayah: Int) {
+    readingBookmarkHighlightReadyAt = SystemClock.uptimeMillis() + 750L
+    handler.postDelayed({
+      if (clearReadingBookmarkHighlightOnTap) {
+        readingEventPresenterBridge.setSelection(sura, ayah, true)
+      }
+    }, 350L)
   }
 
   private fun onAudioPlaybackAyahChanged(suraAyah: SuraAyah?) {
@@ -1079,8 +1110,13 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       showingTranslation = true
       val highlightedSura = extras.getInt(EXTRA_HIGHLIGHT_SURA, -1)
       val highlightedAyah = extras.getInt(EXTRA_HIGHLIGHT_AYAH, -1)
+      clearReadingBookmarkHighlightOnTap =
+        extras.getBoolean(EXTRA_CLEAR_HIGHLIGHT_ON_TAP, false)
       if (highlightedSura > 0 && highlightedAyah > 0) {
         readingEventPresenterBridge.setSelection(highlightedSura, highlightedAyah, true)
+        if (clearReadingBookmarkHighlightOnTap) {
+          scheduleReadingBookmarkHighlight(highlightedSura, highlightedAyah)
+        }
       }
 
       if (showingTranslation != currentValue) {
@@ -1200,6 +1236,8 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       nightMode.isChecked = isNightMode
       nightMode.setIcon(if (isNightMode) R.drawable.ic_night_mode else R.drawable.ic_day_mode)
     }
+    menu.findItem(R.id.vertical_navigation)?.isChecked =
+      quranSettings.isVerticalPageNavigation
     return true
   }
 
@@ -1219,6 +1257,17 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       return true
     } else if (itemId == R.id.translation_selection) {
       showTranslationSelectionDialog()
+      return true
+    } else if (itemId == R.id.vertical_navigation) {
+      val useVerticalNavigation = !quranSettings.isVerticalPageNavigation
+      quranSettings.setVerticalPageNavigation(useVerticalNavigation)
+      item.isChecked = useVerticalNavigation
+      (viewPager as? NonRestoringViewPager)
+        ?.setVerticalPagingEnabled(useVerticalNavigation)
+      // Continuous vertical reading uses one Quran page at a time, including
+      // when the phone is held in landscape. This avoids two independent
+      // scrolling columns competing for the same reading gesture.
+      updateDualPageMode()
       return true
     } else if (itemId == R.id.settings) {
       val i = Intent(this, QuranPreferenceActivity::class.java)
@@ -1266,6 +1315,54 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     quranSettings.setAutomaticReadingPosition(page, sura, ayah, textMode)
     if (page == currentPage && sura > 0 && ayah > 0) {
       updateActionBarTitle(page, sura, ayah)
+    }
+  }
+
+  fun isVerticalPageNavigationEnabled(): Boolean {
+    return quranSettings.isVerticalPageNavigation
+  }
+
+  fun moveToAdjacentVerticalPage(forward: Boolean) {
+    if (!quranSettings.isVerticalPageNavigation || verticalPageTransitionInProgress) {
+      return
+    }
+
+    val targetPage = currentPage + if (forward) 1 else -1
+    if (!quranInfo.isValidPage(targetPage)) {
+      return
+    }
+
+    val targetPosition = quranInfo.getPositionFromPage(targetPage, isDualPageVisible)
+    if (targetPosition == viewPager.currentItem) {
+      return
+    }
+
+    verticalPageTransitionInProgress = true
+    prepareAndMoveToVerticalPage(targetPosition, forward, 0)
+    handler.postDelayed({ verticalPageTransitionInProgress = false }, 900L)
+  }
+
+  private fun prepareAndMoveToVerticalPage(position: Int, forward: Boolean, attempt: Int) {
+    val fragment = pagerAdapter.getFragmentIfExists(position)
+    if (fragment is TranslationFragment && fragment.view != null && fragment.isVerticalPageReady()) {
+      // Prepare the neighboring page while it is still off-screen so the reader
+      // never sees it jump from a restored position to its intended edge.
+      fragment.scrollToVerticalPageEdge(start = forward)
+      fragment.view?.post {
+        viewPager.setCurrentItem(position, true)
+      }
+    } else if (attempt < 8) {
+      handler.postDelayed(
+        { prepareAndMoveToVerticalPage(position, forward, attempt + 1) },
+        40L
+      )
+    } else {
+      // The adjacent fragment normally loads ahead of time. Keep navigation
+      // available even if a slow device needs longer than the preload window.
+      if (fragment is TranslationFragment && fragment.view != null) {
+        fragment.scrollToVerticalPageEdge(start = forward)
+      }
+      viewPager.setCurrentItem(position, true)
     }
   }
 
@@ -2016,6 +2113,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
     const val EXTRA_JUMP_TO_TRANSLATION: String = "jumpToTranslation"
     const val EXTRA_HIGHLIGHT_SURA: String = "highlightSura"
     const val EXTRA_HIGHLIGHT_AYAH: String = "highlightAyah"
+    const val EXTRA_CLEAR_HIGHLIGHT_ON_TAP: String = "clearHighlightOnTap"
     const val LAST_WAS_DUAL_PAGES: String = "wasDualPages"
 
     private const val DEFAULT_HIDE_AFTER_TIME: Long = 2500

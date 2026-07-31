@@ -42,6 +42,7 @@
   <string name="zoom_out">Decrease size</string>
   <string name="reading_mode_text_selected">Text mode will open by default</string>
   <string name="reading_mode_pages_selected">Page mode will open by default</string>
+  <string name="menu_vertical_navigation">Vertical page navigation</string>
   <string name="menu_help">Help</string>
   <string name="menu_search">Search</string>
   <string name="menu_get_translations">Get Translations</string>

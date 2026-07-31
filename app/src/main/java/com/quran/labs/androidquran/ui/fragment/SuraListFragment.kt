@@ -118,13 +118,6 @@ class SuraListFragment : Fragment(), QuranTouchListener {
         val currentReadingBookmark = readingBookmarksDao.readingBookmark()
         updateReadingBookmark(currentReadingBookmark)
         updateSuraList()
-        val recentPage = activity.latestPage()
-        if (recentPage != Constants.NO_PAGE) {
-          val sura = quranDisplayData.safelyGetSuraOnPage(recentPage)
-          val juz = quranInfo.getJuzFromPage(recentPage)
-          val position = sura + juz - 1 + readingBookmarkOffset()
-          recyclerView.scrollToPosition(position)
-        }
       }
 
       if (QuranUtils.isRtl()) {
@@ -229,6 +222,8 @@ class SuraListFragment : Fragment(), QuranTouchListener {
     if (activity != null && row.page != 0) {
       if (row.isAutomaticReadingPosition) {
         activity.continueReadingAutomatically()
+      } else if (row.isReadingBookmark && row.isAyahBookmark) {
+        activity.jumpToReadingBookmark(row.page, row.sura, row.ayah)
       } else if (row.isAyahBookmark) {
         activity.jumpToAndHighlight(row.page, row.sura, row.ayah)
       } else {

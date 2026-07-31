@@ -50,6 +50,7 @@ object Constants {
   const val PREF_AUTO_LAST_AYAH = "automaticLastAyah"
   const val PREF_AUTO_LAST_TEXT_MODE = "automaticLastTextMode"
   const val PREF_READING_TEXT_MODE = "preferredReadingTextMode"
+  const val PREF_VERTICAL_PAGE_NAVIGATION = "verticalPageNavigation"
   const val PREF_LOCK_ORIENTATION = "lockOrientation"
   const val PREF_LANDSCAPE_ORIENTATION = "landscapeOrientation"
   const val PREF_AYAH_TEXT_SIZE = "ayahTextSize"

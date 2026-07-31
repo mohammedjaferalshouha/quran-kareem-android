@@ -21,6 +21,7 @@ import com.quran.labs.androidquran.presenter.translation.TranslationPresenter
 import com.quran.labs.androidquran.ui.PagerActivity
 import com.quran.labs.androidquran.ui.helpers.AyahSelectedListener
 import com.quran.labs.androidquran.ui.helpers.AyahTracker
+import com.quran.labs.androidquran.ui.helpers.HighlightTypes
 import com.quran.labs.androidquran.ui.helpers.QuranPage
 import com.quran.labs.androidquran.ui.translation.TranslationView
 import com.quran.labs.androidquran.ui.util.PageController
@@ -153,6 +154,17 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
   ) {
     translationView.setPageNumber(page)
     translationView.setVerses(quranDisplayData, translations, verses)
+    val currentSelection = readingEventPresenter.currentAyahSelection()
+    if (currentSelection is AyahSelection.Ayah) {
+      val suraAyah = currentSelection.suraAyah
+      if (quranInfo.getPageFromSuraAyah(suraAyah.sura, suraAyah.ayah) == page) {
+        translationView.highlightAyah(
+          suraAyah,
+          quranInfo.getAyahId(suraAyah.sura, suraAyah.ayah),
+          HighlightTypes.SELECTION
+        )
+      }
+    }
   }
 
   override fun updateScrollPosition() {
@@ -210,6 +222,26 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
     if (isVisible) {
       ayahTrackerPresenter.endAyahMode()
     }
+  }
+
+  override fun isVerticalPageNavigationEnabled(): Boolean {
+    return (activity as? PagerActivity)?.isVerticalPageNavigationEnabled() == true
+  }
+
+  override fun requestAdjacentVerticalPage(forward: Boolean) {
+    (activity as? PagerActivity)?.moveToAdjacentVerticalPage(forward)
+  }
+
+  fun scrollToVerticalPageEdge(start: Boolean) {
+    if (start) {
+      translationView.scrollToPageStart()
+    } else {
+      translationView.scrollToPageEnd()
+    }
+  }
+
+  fun isVerticalPageReady(): Boolean {
+    return this::translationView.isInitialized && translationView.isFlowingQuranTextReady
   }
 
   companion object {

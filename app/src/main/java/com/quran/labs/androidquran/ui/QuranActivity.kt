@@ -564,6 +564,16 @@ class QuranActivity : AppCompatActivity(),
     startActivity(i)
   }
 
+  fun jumpToReadingBookmark(page: Int, sura: Int, ayah: Int) {
+    val i = Intent(this, PagerActivity::class.java)
+    i.putExtra("page", page)
+    i.putExtra(PagerActivity.EXTRA_HIGHLIGHT_SURA, sura)
+    i.putExtra(PagerActivity.EXTRA_HIGHLIGHT_AYAH, ayah)
+    i.putExtra(PagerActivity.EXTRA_CLEAR_HIGHLIGHT_ON_TAP, true)
+    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
+    startActivity(i)
+  }
+
   private fun gotoPageDialog() {
     if (!isPaused) {
       val fm = supportFragmentManager

@@ -30,6 +30,7 @@
   <string name="zoom_out">تصغير</string>
   <string name="reading_mode_text_selected">سيُفتح وضع النص تلقائيًا</string>
   <string name="reading_mode_pages_selected">سيُفتح وضع الصفحات تلقائيًا</string>
+  <string name="menu_vertical_navigation">التنقل الرأسي بين الصفحات</string>
   <string name="menu_help">مساعدة</string>
   <string name="menu_search">بحث</string>
   <string name="menu_get_translations">حمل التفاسير/التراجم</string>

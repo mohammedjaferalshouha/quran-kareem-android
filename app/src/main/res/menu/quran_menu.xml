@@ -21,6 +21,10 @@
     <item android:id="@+id/translation_selection"
           android:title="@string/prefs_translations"
           app:showAsAction="never" />
+    <item android:id="@+id/vertical_navigation"
+          android:checkable="true"
+          android:title="@string/menu_vertical_navigation"
+          app:showAsAction="never" />
     <item android:id="@+id/settings"
           android:icon="@drawable/ic_action_settings"
           android:title="@string/menu_settings"

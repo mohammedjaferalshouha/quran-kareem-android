@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Build;
+import android.os.SystemClock;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -21,6 +22,7 @@ import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
@@ -64,7 +66,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     TranslationAdapter.OnVerseSelectedListener, TranslationAdapter.OnJumpToAyahListener {
   private final TranslationAdapter translationAdapter;
   private final RecyclerView translationRecycler;
-  private final NestedScrollView quranTextScroll;
+  private final BoundaryAwareNestedScrollView quranTextScroll;
   private final TextView quranTextView;
   private final TextView emptyTranslationView;
   private final TextView translationPageNumberView;
@@ -84,6 +86,8 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
   private int currentPageNumber = 1;
   private BackgroundColorSpan flowingSelectionSpan;
   private DisplayMode displayMode = DisplayMode.QURAN_TEXT;
+  private int pendingScrollSura = -1;
+  private int pendingScrollAyah = -1;
 
   public enum DisplayMode {
     QURAN_TEXT,
@@ -121,7 +125,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
       quranTextView.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     }
 
-    quranTextScroll = new NestedScrollView(context);
+    quranTextScroll = new BoundaryAwareNestedScrollView(context);
     quranTextScroll.setFillViewport(true);
     quranTextScroll.setSmoothScrollingEnabled(true);
     quranTextScroll.addView(quranTextView,
@@ -153,8 +157,23 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     addView(translationPageNumberView, pageNumberLayoutParams);
 
     quranTextScroll.setOnScrollChangeListener(
-        (NestedScrollView.OnScrollChangeListener) (view, scrollX, scrollY, oldScrollX, oldScrollY) ->
-            notifyAutomaticReadingPosition(scrollY));
+        (NestedScrollView.OnScrollChangeListener) (view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+          notifyAutomaticReadingPosition(scrollY);
+          quranTextScroll.checkForPageBoundary(scrollY, oldScrollY);
+        });
+    quranTextScroll.setBoundaryNavigationListener(new BoundaryNavigationListener() {
+      @Override
+      public boolean isEnabled() {
+        return pageController != null && pageController.isVerticalPageNavigationEnabled();
+      }
+
+      @Override
+      public void moveToAdjacentPage(boolean forward) {
+        if (pageController != null) {
+          pageController.requestAdjacentVerticalPage(forward);
+        }
+      }
+    });
     final GestureDetector verseGestureDetector = new GestureDetector(
         context,
         new GestureDetector.SimpleOnGestureListener() {
@@ -639,10 +658,31 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
 
   public void setScrollPosition(int position) {
     if (showingQuranText) {
+      // A bookmark jump has priority over a fragment's previously restored
+      // page offset. Otherwise the restored zero offset hides the target ayah.
+      if (pendingScrollSura > 0 && pendingScrollAyah > 0) {
+        scrollFlowingTextToAyah(pendingScrollSura, pendingScrollAyah);
+        return;
+      }
       quranTextScroll.post(() -> quranTextScroll.scrollTo(0, Math.max(0, position)));
     } else {
       layoutManager.scrollToPosition(position);
     }
+  }
+
+  public void scrollToPageStart() {
+    quranTextScroll.post(() -> quranTextScroll.scrollTo(0, 0));
+  }
+
+  public void scrollToPageEnd() {
+    quranTextScroll.post(() ->
+        quranTextScroll.scrollTo(0, Math.max(0,
+            quranTextView.getHeight() - quranTextScroll.getHeight())));
+  }
+
+  public boolean isFlowingQuranTextReady() {
+    return showingQuranText && quranTextView.getText().length() > 0 &&
+        quranTextView.getLayout() != null;
   }
 
   private void notifyAutomaticReadingPosition(int scrollY) {
@@ -668,20 +708,39 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
   }
 
   private void scrollFlowingTextToAyah(int sura, int ayah) {
+    pendingScrollSura = sura;
+    pendingScrollAyah = ayah;
     for (FlowAyahOffset offset : flowAyahOffsets) {
       if (offset.ayahInfo.sura == sura && offset.ayahInfo.ayah == ayah) {
         final int targetOffset =
             ayah == 1 ? flowSuraOffsets.get(sura, offset.characterOffset) : offset.characterOffset;
-        quranTextView.post(() -> {
-          if (quranTextView.getLayout() != null) {
-            final int line = quranTextView.getLayout().getLineForOffset(targetOffset);
-            final int top = Math.max(0, quranTextView.getLayout().getLineTop(line) - dp(getContext(), 20));
-            quranTextScroll.smoothScrollTo(0, top);
-          }
-        });
+        postScrollToAyah(targetOffset, 0);
         return;
       }
     }
+  }
+
+  private void postScrollToAyah(int targetOffset, int attempt) {
+    quranTextView.post(() -> {
+      if (quranTextView.getLayout() == null) {
+        if (attempt < 12) {
+          postScrollToAyah(targetOffset, attempt + 1);
+        }
+        return;
+      }
+      final int line = quranTextView.getLayout().getLineForOffset(targetOffset);
+      final int top = Math.max(0,
+          quranTextView.getLayout().getLineTop(line) - dp(getContext(), 20));
+      quranTextScroll.smoothScrollTo(0, top);
+      final int expectedSura = pendingScrollSura;
+      final int expectedAyah = pendingScrollAyah;
+      quranTextView.postDelayed(() -> {
+        if (pendingScrollSura == expectedSura && pendingScrollAyah == expectedAyah) {
+          pendingScrollSura = -1;
+          pendingScrollAyah = -1;
+        }
+      }, 1500L);
+    });
   }
 
   private void selectFlowingAyahAt(@NonNull MotionEvent event) {
@@ -736,6 +795,87 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
 
   public interface OnReadingPositionChangedListener {
     void onReadingPositionChanged(@NonNull QuranAyahInfo ayahInfo);
+  }
+
+  private interface BoundaryNavigationListener {
+    boolean isEnabled();
+    void moveToAdjacentPage(boolean forward);
+  }
+
+  private static final class BoundaryAwareNestedScrollView extends NestedScrollView {
+    private static final long USER_SCROLL_WINDOW_MS = 1000L;
+
+    private BoundaryNavigationListener boundaryNavigationListener;
+    private long lastUserTouchAt;
+    private float lastTouchY;
+    private float gestureDistance;
+    private final int minimumGestureDistance;
+    private int lastUserDirection;
+    private boolean boundaryRequestPosted;
+
+    BoundaryAwareNestedScrollView(Context context) {
+      super(context);
+      minimumGestureDistance = ViewConfiguration.get(context).getScaledTouchSlop() * 2;
+    }
+
+    void setBoundaryNavigationListener(BoundaryNavigationListener listener) {
+      boundaryNavigationListener = listener;
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+      final int action = event.getActionMasked();
+      if (action == MotionEvent.ACTION_DOWN) {
+        lastTouchY = event.getY();
+        gestureDistance = 0f;
+        lastUserDirection = 0;
+        boundaryRequestPosted = false;
+        lastUserTouchAt = SystemClock.uptimeMillis();
+      } else if (action == MotionEvent.ACTION_MOVE) {
+        final float currentY = event.getY();
+        final float delta = currentY - lastTouchY;
+        if (Math.abs(delta) >= 1f) {
+          // Finger moving upward means reading forward.
+          lastUserDirection = delta < 0f ? 1 : -1;
+          gestureDistance += Math.abs(delta);
+          lastTouchY = currentY;
+        }
+        lastUserTouchAt = SystemClock.uptimeMillis();
+      } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+        lastUserTouchAt = SystemClock.uptimeMillis();
+      }
+      final boolean handled = super.dispatchTouchEvent(event);
+      if (action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_UP) {
+        checkForPageBoundary(getScrollY(), getScrollY());
+      }
+      return handled;
+    }
+
+    void checkForPageBoundary(int scrollY, int oldScrollY) {
+      if (boundaryRequestPosted || boundaryNavigationListener == null ||
+          !boundaryNavigationListener.isEnabled() ||
+          gestureDistance < minimumGestureDistance ||
+          SystemClock.uptimeMillis() - lastUserTouchAt > USER_SCROLL_WINDOW_MS) {
+        return;
+      }
+
+      final boolean movingForward = scrollY > oldScrollY || lastUserDirection > 0;
+      final boolean movingBackward = scrollY < oldScrollY || lastUserDirection < 0;
+      if (movingForward && !canScrollVertically(1)) {
+        postBoundaryRequest(true);
+      } else if (movingBackward && !canScrollVertically(-1)) {
+        postBoundaryRequest(false);
+      }
+    }
+
+    private void postBoundaryRequest(boolean forward) {
+      boundaryRequestPosted = true;
+      post(() -> {
+        if (boundaryNavigationListener != null && boundaryNavigationListener.isEnabled()) {
+          boundaryNavigationListener.moveToAdjacentPage(forward);
+        }
+      });
+    }
   }
 
   private static final class FlowAyahOffset {

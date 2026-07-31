@@ -194,6 +194,16 @@ public class QuranSettings {
         .apply();
   }
 
+  public boolean isVerticalPageNavigation() {
+    return prefs.getBoolean(Constants.PREF_VERTICAL_PAGE_NAVIGATION, false);
+  }
+
+  public void setVerticalPageNavigation(boolean verticalPageNavigation) {
+    prefs.edit()
+        .putBoolean(Constants.PREF_VERTICAL_PAGE_NAVIGATION, verticalPageNavigation)
+        .apply();
+  }
+
   public int getBookmarksSortOrder() {
     return prefs.getInt(Constants.PREF_SORT_BOOKMARKS, 0);
   }

@@ -15,4 +15,8 @@ interface PageController {
   fun onScrollChanged(y: Float)
   fun handleLongPress(suraAyah: SuraAyah)
   fun endAyahMode()
+
+  fun isVerticalPageNavigationEnabled(): Boolean = false
+
+  fun requestAdjacentVerticalPage(forward: Boolean) {}
 }
