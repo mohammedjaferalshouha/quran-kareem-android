@@ -1,0 +1,22 @@
+name: اقتراح ميزة
+description: اقتراح تحسين أو وظيفة جديدة
+title: "[اقتراح] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: الحاجة
+      description: ما المشكلة التي سيحلها الاقتراح؟
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: الحل المقترح
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: بدائل ممكنة
