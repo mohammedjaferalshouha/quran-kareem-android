@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="audio_play">Play recitation</string>
+  <string name="audio_pause">Pause recitation</string>
+  <string name="audio_stop">Stop recitation</string>
+  <string name="audio_previous">Previous ayah</string>
+  <string name="audio_next">Next ayah</string>
+  <string name="audio_repeat">Repeat count</string>
+  <string name="audio_speed">Playback speed</string>
+  <string name="audio_settings">Recitation settings</string>
+  <string name="audio_change_qari">Change reciter</string>
+  <string name="audio_record">Record recitation</string>
+  <string name="recitation_hide_verses">Hide verses</string>
+  <string name="recitation_end">End recitation session</string>
+  <string name="recitation_transcript">Recitation transcript</string>
+</resources>

@@ -1,5 +1,6 @@
 package com.quran.labs.androidquran.service
 
+import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -68,6 +69,7 @@ import com.quran.labs.androidquran.data.TimingRepository
 import com.quran.labs.androidquran.extension.requiresBasmallah
 import com.quran.labs.androidquran.presenter.audio.service.AudioQueue
 import com.quran.labs.androidquran.service.util.QuranDownloadNotifier
+import com.quran.labs.androidquran.service.util.PermissionUtil
 import com.quran.labs.androidquran.ui.PagerActivity
 import com.quran.labs.androidquran.util.AudioUtils
 import com.quran.labs.androidquran.util.NotificationChannelUtil.setupNotificationChannel
@@ -1152,18 +1154,24 @@ class AudioService : Service(), Player.Listener {
   }
 
   /** Updates the notification.  */
+  @SuppressLint("NotificationPermission")
   private fun updateNotification() {
     notificationBuilder?.setContentText(getTitle())
     if (!didSetNotificationIconOnNotificationBuilder && notificationIcon != null) {
       notificationBuilder?.setLargeIcon(notificationIcon)
       didSetNotificationIconOnNotificationBuilder = true
     }
-    notificationManager.notify(NOTIFICATION_ID, notificationBuilder?.build())
+    if (PermissionUtil.havePostNotificationPermission(this)) {
+      notificationManager.notify(NOTIFICATION_ID, notificationBuilder?.build())
+    }
   }
 
+  @SuppressLint("NotificationPermission")
   private fun pauseNotification() {
     val builder = getPausedNotificationBuilder()
-    notificationManager.notify(NOTIFICATION_ID, builder.build())
+    if (PermissionUtil.havePostNotificationPermission(this)) {
+      notificationManager.notify(NOTIFICATION_ID, builder.build())
+    }
   }
 
   /**

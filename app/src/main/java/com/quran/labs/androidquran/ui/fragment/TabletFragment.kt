@@ -16,6 +16,7 @@ import com.quran.data.model.SuraAyah
 import com.quran.data.model.selection.AyahSelection
 import com.quran.labs.androidquran.common.QuranAyahInfo
 import com.quran.labs.androidquran.data.QuranDisplayData
+import com.quran.labs.androidquran.extra.feature.linebyline.LineByLineZoomLayout
 import com.quran.labs.androidquran.presenter.quran.QuranPagePresenter
 import com.quran.labs.androidquran.presenter.quran.QuranPageScreen
 import com.quran.labs.androidquran.presenter.quran.ayahtracker.AyahImageTrackerItem
@@ -34,6 +35,7 @@ import com.quran.labs.androidquran.ui.util.PageController
 import com.quran.labs.androidquran.util.QuranScreenInfo
 import com.quran.labs.androidquran.util.QuranSettings
 import com.quran.labs.androidquran.view.HighlightingImageView
+import com.quran.labs.androidquran.view.QuranCustomImagePageLayout
 import com.quran.labs.androidquran.view.QuranImagePageLayout
 import com.quran.labs.androidquran.view.QuranTranslationPageLayout
 import com.quran.labs.androidquran.view.TabletView
@@ -61,8 +63,14 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   private var mode = 0
   private var pageNumber = 0
   private var translationScrollPosition = 0
+  private var splitTranslationScrollPosition = 0
+  private var splitTranslationScrollOffset = 0
+  private var splitReaderScrollPosition = 0
+  private var splitTranslationExpansionState: LongArray? = null
+  private var splitTranslationFootnoteState: LongArray? = null
   private var ayahCoordinatesError = false
   private var isSplitScreen = false
+  private var splitReaderIsText = true
   private var leftTranslation: TranslationView? = null
   private var rightTranslation: TranslationView? = null
   private var leftImageView: HighlightingImageView? = null
@@ -71,6 +79,7 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   private var ayahTrackerItemsStorage: Array<AyahTrackerItem>? = null
   private var splitTranslationView: TranslationView? = null
   private var splitQuranTextView: TranslationView? = null
+  private var pendingVerticalPageStart: Boolean? = null
   private var lastLongPressPage = -1
 
   private lateinit var mainView: TabletView
@@ -91,11 +100,55 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
 
   private val scope = MainScope()
 
+  override fun zoomBy(delta: Float) {
+    if (!::mainView.isInitialized) {
+      return
+    }
+    (mainView.leftPage as? QuranCustomImagePageLayout)
+      ?.getWrappedView()
+      ?.let { it as? LineByLineZoomLayout }
+      ?.zoomBy(delta)
+    (mainView.rightPage as? QuranCustomImagePageLayout)
+      ?.getWrappedView()
+      ?.let { it as? LineByLineZoomLayout }
+      ?.zoomBy(delta)
+
+    if (mode == Mode.TRANSLATION) {
+      val leftPage = mainView.leftPage as? QuranTranslationPageLayout
+      val rightPage = mainView.rightPage as? QuranTranslationPageLayout
+      val sourcePage = rightPage ?: leftPage
+      val changed = sourcePage?.zoomBy(delta, quranSettings) == true
+      if (changed) {
+        if (leftPage !== sourcePage) {
+          leftPage?.translationView?.refresh(quranSettings)
+        }
+        if (rightPage !== sourcePage) {
+          rightPage?.translationView?.refresh(quranSettings)
+        }
+      }
+    }
+  }
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     if (savedInstanceState != null) {
       translationScrollPosition = savedInstanceState.getInt(
         SI_RIGHT_TRANSLATION_SCROLL_POSITION
+      )
+      splitTranslationScrollPosition = savedInstanceState.getInt(
+        SI_SPLIT_TRANSLATION_SCROLL_POSITION
+      )
+      splitTranslationScrollOffset = savedInstanceState.getInt(
+        SI_SPLIT_TRANSLATION_SCROLL_OFFSET
+      )
+      splitReaderScrollPosition = savedInstanceState.getInt(
+        SI_SPLIT_READER_SCROLL_POSITION
+      )
+      splitTranslationExpansionState = savedInstanceState.getLongArray(
+        SI_SPLIT_TRANSLATION_EXPANSION_STATE
+      )
+      splitTranslationFootnoteState = savedInstanceState.getLongArray(
+        SI_SPLIT_TRANSLATION_FOOTNOTE_STATE
       )
     }
     pageViewFactory =
@@ -149,22 +202,39 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   }
 
   private fun initSplitMode() {
-    mainView.init(
-      TabletView.TRANSLATION_PAGE,
-      TabletView.TRANSLATION_PAGE,
-      null,
-      pageNumber,
-      pageNumber
-    )
+    if (splitReaderIsText) {
+      mainView.init(
+        TabletView.TRANSLATION_PAGE,
+        TabletView.TRANSLATION_PAGE,
+        null,
+        pageNumber,
+        pageNumber
+      )
+      splitQuranTextView =
+        (mainView.rightPage as QuranTranslationPageLayout).translationView.apply {
+          setDisplayMode(TranslationView.DisplayMode.QURAN_TEXT)
+          setPageNumber(pageNumber)
+        }
+    } else {
+      mainView.init(
+        TabletView.TRANSLATION_PAGE,
+        TabletView.QURAN_PAGE,
+        pageViewFactory,
+        pageNumber,
+        pageNumber
+      )
+      (mainView.rightPage as? QuranImagePageLayout)?.let { quranPage ->
+        rightImageView = quranPage.getImageView()
+      }
+    }
     splitTranslationView =
-      (mainView.leftPage as QuranTranslationPageLayout).translationView
-    splitQuranTextView =
-      (mainView.rightPage as QuranTranslationPageLayout).translationView
-
-    splitTranslationView?.setDisplayMode(TranslationView.DisplayMode.TRANSLATION_ONLY)
-    splitQuranTextView?.setDisplayMode(TranslationView.DisplayMode.QURAN_TEXT)
-    splitTranslationView?.setPageNumber(pageNumber)
-    splitQuranTextView?.setPageNumber(pageNumber)
+      (mainView.leftPage as QuranTranslationPageLayout).translationView.apply {
+        setDisplayMode(TranslationView.DisplayMode.TRANSLATION_ONLY)
+        setPageNumber(pageNumber)
+        setIsolateTranslationScrollFromPager(true)
+        restoreExpandedTafseerState(splitTranslationExpansionState)
+        restoreExpandedFootnoteState(splitTranslationFootnoteState)
+      }
 
     val pagerActivity = activity as PagerActivity
     splitTranslationView?.setTranslationClickedListener { pagerActivity.toggleActionBar() }
@@ -183,10 +253,9 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
         quranPagePresenter.value.bind(this)
       }
     } else {
-      if (isSplitScreen) {
-        translationPresenter.value.bind(this)
-      } else {
-        translationPresenter.value.bind(this)
+      translationPresenter.value.bind(this)
+      if (isSplitScreen && !splitReaderIsText && !isCustomArabicPageType) {
+        quranPagePresenter.value.bind(this)
       }
     }
   }
@@ -194,9 +263,17 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   override fun onPause() {
     if (mode == Mode.TRANSLATION) {
       val rightTranslation = rightTranslation
-      val splitQuranTextView = splitQuranTextView
-      if (isSplitScreen && splitQuranTextView != null) {
-        translationScrollPosition = splitQuranTextView.findFirstCompletelyVisibleItemPosition()
+      if (isSplitScreen) {
+        splitTranslationView?.let {
+          val anchor = it.translationScrollAnchor
+          splitTranslationScrollPosition = anchor[0]
+          splitTranslationScrollOffset = anchor[1]
+        }
+        if (splitReaderIsText) {
+          splitQuranTextView?.let {
+            splitReaderScrollPosition = it.findFirstCompletelyVisibleItemPosition()
+          }
+        }
       } else if (rightTranslation != null) {
         translationScrollPosition = rightTranslation.findFirstCompletelyVisibleItemPosition()
       }
@@ -209,10 +286,9 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
     if (mode == Mode.ARABIC) {
       quranPagePresenter.value.unbind(this)
     } else {
-      if (isSplitScreen) {
-        translationPresenter.value.unbind(this)
-      } else {
-        translationPresenter.value.unbind(this)
+      translationPresenter.value.unbind(this)
+      if (isSplitScreen && !splitReaderIsText && !isCustomArabicPageType) {
+        quranPagePresenter.value.unbind(this)
       }
     }
     super.onStop()
@@ -235,10 +311,33 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   override fun onSaveInstanceState(outState: Bundle) {
     if (mode == Mode.TRANSLATION) {
       if (isSplitScreen) {
-        outState.putInt(
-          SI_RIGHT_TRANSLATION_SCROLL_POSITION,
-          splitQuranTextView!!.findFirstCompletelyVisibleItemPosition()
-        )
+        splitTranslationView?.let {
+          val anchor = it.translationScrollAnchor
+          outState.putInt(
+            SI_SPLIT_TRANSLATION_SCROLL_POSITION,
+            anchor[0]
+          )
+          outState.putInt(
+            SI_SPLIT_TRANSLATION_SCROLL_OFFSET,
+            anchor[1]
+          )
+          outState.putLongArray(
+            SI_SPLIT_TRANSLATION_EXPANSION_STATE,
+            it.expandedTafseerState
+          )
+          outState.putLongArray(
+            SI_SPLIT_TRANSLATION_FOOTNOTE_STATE,
+            it.expandedFootnoteState
+          )
+        }
+        if (splitReaderIsText) {
+          splitQuranTextView?.let {
+            outState.putInt(
+              SI_SPLIT_READER_SCROLL_POSITION,
+              it.findFirstCompletelyVisibleItemPosition()
+            )
+          }
+        }
       } else {
         outState.putInt(
           SI_RIGHT_TRANSLATION_SCROLL_POSITION,
@@ -293,11 +392,28 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
         }
       } else if (mode == Mode.TRANSLATION) {
         if (isSplitScreen) {
-          val quranTextItem =
-            AyahTranslationTrackerItem(pageNumber, quranInfo, splitQuranTextView!!)
           val translationItem =
             AyahTranslationTrackerItem(pageNumber, quranInfo, splitTranslationView!!)
-          arrayOf(quranTextItem, translationItem)
+          if (splitReaderIsText) {
+            val quranTextItem =
+              AyahTranslationTrackerItem(pageNumber, quranInfo, splitQuranTextView!!)
+            arrayOf(quranTextItem, translationItem)
+          } else {
+            val imageView = rightImageView
+            if (imageView != null) {
+              val imageItem = AyahImageTrackerItem(
+                pageNumber,
+                quranInfo,
+                quranDisplayData,
+                true,
+                imageDrawHelpers,
+                imageView
+              )
+              arrayOf(imageItem, translationItem)
+            } else {
+              arrayOf(translationItem)
+            }
+          }
         } else {
           val left = AyahTranslationTrackerItem(pageNumber + 1, quranInfo, leftTranslation!!)
           val right = AyahTranslationTrackerItem(pageNumber, quranInfo, rightTranslation!!)
@@ -317,6 +433,7 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
     pageNumber = arguments.getInt(FIRST_PAGE_EXTRA)
     mode = arguments.getInt(MODE_EXTRA, Mode.ARABIC)
     isSplitScreen = arguments.getBoolean(IS_SPLIT_SCREEN, false)
+    splitReaderIsText = arguments.getBoolean(SPLIT_READER_IS_TEXT, true)
     val pages =
       if (isSplitScreen && mode == Mode.TRANSLATION) intArrayOf(pageNumber) else intArrayOf(
         pageNumber,
@@ -340,10 +457,8 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   }
 
   override fun setPageBitmap(page: Int, pageBitmap: Bitmap) {
-    if (!(isSplitScreen && mode == Mode.TRANSLATION)) {
-      val imageView: ImageView? = if (page == pageNumber) rightImageView else leftImageView
-      imageView?.setImageDrawable(BitmapDrawable(resources, pageBitmap))
-    }
+    val imageView: ImageView? = if (page == pageNumber) rightImageView else leftImageView
+    imageView?.setImageDrawable(BitmapDrawable(resources, pageBitmap))
   }
 
   override fun hidePageDownloadError() {
@@ -368,9 +483,11 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   ) {
     if (isSplitScreen) {
       splitTranslationView?.setPageNumber(page)
-      splitQuranTextView?.setPageNumber(page)
       splitTranslationView?.setVerses(quranDisplayData, translations, verses)
-      splitQuranTextView?.setVerses(quranDisplayData, emptyArray(), verses)
+      if (splitReaderIsText) {
+        splitQuranTextView?.setPageNumber(page)
+        splitQuranTextView?.setVerses(quranDisplayData, emptyArray(), verses)
+      }
     } else {
       if (page == pageNumber) {
         rightTranslation?.setPageNumber(page)
@@ -384,7 +501,14 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
 
   override fun updateScrollPosition() {
     if (isSplitScreen) {
-      splitQuranTextView?.setScrollPosition(translationScrollPosition)
+      splitTranslationView?.restoreTranslationScrollAnchor(
+        splitTranslationScrollPosition,
+        splitTranslationScrollOffset
+      )
+      if (splitReaderIsText) {
+        splitQuranTextView?.setScrollPosition(splitReaderScrollPosition)
+        applyPendingVerticalPageEntry()
+      }
     } else {
       rightTranslation?.setScrollPosition(translationScrollPosition)
     }
@@ -396,6 +520,10 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
         translationPresenter.value.refresh()
       }
     }
+  }
+
+  override fun onArabicTextUnavailable() {
+    (activity as? PagerActivity)?.onArabicTextUnavailable(pageNumber)
   }
 
   override val shouldLoadTranslations: Boolean
@@ -472,19 +600,66 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
     }
   }
 
+  override fun isVerticalPageNavigationEnabled(): Boolean {
+    return (activity as? PagerActivity)?.isVerticalPageNavigationEnabled() == true
+  }
+
+  override fun requestAdjacentVerticalPage(forward: Boolean) {
+    (activity as? PagerActivity)?.moveToAdjacentVerticalPage(forward)
+  }
+
+  fun prepareVerticalPageEntry(start: Boolean) {
+    pendingVerticalPageStart = start
+    applyPendingVerticalPageEntry()
+  }
+
+  private fun applyPendingVerticalPageEntry() {
+    val start = pendingVerticalPageStart ?: return
+    if (!isSplitScreen || !splitReaderIsText) {
+      return
+    }
+    val textView = splitQuranTextView ?: return
+    if (!textView.isFlowingQuranTextReady) {
+      return
+    }
+    pendingVerticalPageStart = null
+    if (start) {
+      textView.scrollToPageStart()
+    } else {
+      textView.scrollToPageEnd()
+    }
+  }
+
   companion object {
     private const val FIRST_PAGE_EXTRA = "pageNumber"
     private const val MODE_EXTRA = "mode"
     private const val IS_SPLIT_SCREEN = "splitScreenMode"
+    private const val SPLIT_READER_IS_TEXT = "splitReaderIsText"
     private const val SI_RIGHT_TRANSLATION_SCROLL_POSITION =
       "SI_RIGHT_TRANSLATION_SCROLL_POSITION"
+    private const val SI_SPLIT_TRANSLATION_SCROLL_POSITION =
+      "SI_SPLIT_TRANSLATION_SCROLL_POSITION"
+    private const val SI_SPLIT_TRANSLATION_SCROLL_OFFSET =
+      "SI_SPLIT_TRANSLATION_SCROLL_OFFSET"
+    private const val SI_SPLIT_READER_SCROLL_POSITION =
+      "SI_SPLIT_READER_SCROLL_POSITION"
+    private const val SI_SPLIT_TRANSLATION_EXPANSION_STATE =
+      "SI_SPLIT_TRANSLATION_EXPANSION_STATE"
+    private const val SI_SPLIT_TRANSLATION_FOOTNOTE_STATE =
+      "SI_SPLIT_TRANSLATION_FOOTNOTE_STATE"
 
-    fun newInstance(firstPage: Int, mode: Int, isSplitScreen: Boolean): TabletFragment {
+    fun newInstance(
+      firstPage: Int,
+      mode: Int,
+      isSplitScreen: Boolean,
+      splitReaderIsText: Boolean = true
+    ): TabletFragment {
       val f = TabletFragment()
       val args = Bundle()
       args.putInt(FIRST_PAGE_EXTRA, firstPage)
       args.putInt(MODE_EXTRA, mode)
       args.putBoolean(IS_SPLIT_SCREEN, isSplitScreen)
+      args.putBoolean(SPLIT_READER_IS_TEXT, splitReaderIsText)
       f.setArguments(args)
       return f
     }

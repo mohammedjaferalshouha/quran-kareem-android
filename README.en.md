@@ -18,13 +18,14 @@
 
 An open-source Android Quran reader focused on a clear Arabic experience and flexible Uthmani text rendering. It includes recitation, search, bookmarks, automatic reading-position recovery, light and dark themes, and a side-by-side page layout.
 
-Current release: `1.0.0`
+Current release: `1.1.7`
 
 Application ID: `com.moham.qurankareem`
 
 ## Highlights
 
-- Flexible Uthmani text mapped to the 604-page Madani Mushaf pagination.
+- A line-by-line Madani 1441 Mushaf page mode while preserving flexible Quran text as an independent option.
+- Consistent 604-page pagination in both page and text reading modes.
 - Continuous navigation across pages and surahs, including pages shared by two surahs.
 - Clear surah headings and page numbers.
 - Single-page and landscape two-page reading.
@@ -34,9 +35,11 @@ Application ID: `com.moham.qurankareem`
 - Automatic last-reading-position tracking and a Continue Reading shortcut.
 - Page and ayah bookmarks with categories.
 - Long-press ayah actions for recitation, sharing, bookmarking, and tafsir.
+- Selected-ayah tafsir from the configured tafsir source.
 - An ayah action toolbar constrained to the visible screen.
 - Reciter selection, playback, and downloadable audio.
-- Dedicated text zoom buttons, including sizes below the default.
+- Zoom controls for text and Mushaf pages, including panning and edge handoff while zoomed.
+- Fast vertical paging with queued gestures and controls kept hidden during a page drag.
 - Light and dark modes accessible from the home and reading screens.
 - Current reading information: surah, ayah, page, juz, hizb, and quarter.
 - Orientation, night brightness, translation font size, and volume-key navigation settings.
@@ -83,7 +86,7 @@ See [Privacy](PRIVACY.md).
 Requirements:
 
 - A current Android Studio installation
-- JDK 17 or a newer version supported by the project toolchain
+- JDK 21
 - Android SDK
 
 Windows debug build:

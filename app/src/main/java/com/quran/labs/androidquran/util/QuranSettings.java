@@ -180,17 +180,17 @@ public class QuranSettings {
   }
 
   public boolean wasAutomaticLastTextMode() {
-    return true;
+    return prefs.getBoolean(Constants.PREF_AUTO_LAST_TEXT_MODE, false);
   }
 
   public boolean isTextReadingMode() {
-    return true;
+    return prefs.getBoolean(Constants.PREF_READING_TEXT_MODE, false);
   }
 
   public void setTextReadingMode(boolean textMode) {
     prefs.edit()
-        .putBoolean(Constants.PREF_READING_TEXT_MODE, true)
-        .putBoolean(Constants.PREF_WAS_SHOWING_TRANSLATION, true)
+        .putBoolean(Constants.PREF_READING_TEXT_MODE, textMode)
+        .putBoolean(Constants.PREF_WAS_SHOWING_TRANSLATION, textMode)
         .apply();
   }
 
@@ -393,6 +393,18 @@ public class QuranSettings {
       return perInstallationPrefs.getStringSet(
           Constants.PREF_ACTIVE_TRANSLATIONS, Collections.emptySet());
     }
+  }
+
+  public void setAyahTafsir(String translation) {
+    if (translation == null) {
+      perInstallationPrefs.edit().remove(Constants.PREF_AYAH_TAFSIR).apply();
+    } else {
+      perInstallationPrefs.edit().putString(Constants.PREF_AYAH_TAFSIR, translation).apply();
+    }
+  }
+
+  public String getAyahTafsir() {
+    return perInstallationPrefs.getString(Constants.PREF_AYAH_TAFSIR, null);
   }
 
   public int getVersion() {

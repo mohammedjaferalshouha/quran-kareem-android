@@ -1,5 +1,6 @@
 package com.quran.labs.androidquran.worker
 
+import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
@@ -17,6 +18,7 @@ import com.quran.labs.androidquran.feature.audio.AudioUpdater
 import com.quran.labs.androidquran.feature.audio.api.AudioUpdateService
 import com.quran.labs.androidquran.feature.audio.util.AudioFileCheckerImpl
 import com.quran.labs.androidquran.feature.audio.util.MD5Calculator
+import com.quran.labs.androidquran.service.util.PermissionUtil
 import com.quran.labs.androidquran.util.AudioUtils
 import com.quran.labs.androidquran.util.NotificationChannelUtil
 import com.quran.labs.androidquran.util.QuranFileUtils
@@ -96,6 +98,7 @@ class AudioUpdateWorker(
     Result.success()
   }
 
+  @SuppressLint("NotificationPermission")
   private fun sendNotification(context: Context) {
     val notificationColor = ContextCompat.getColor(context, R.color.notification_color)
     val notification =
@@ -114,7 +117,9 @@ class AudioUpdateWorker(
       context.applicationContext.getSystemService(Context.NOTIFICATION_SERVICE)
           as NotificationManager
 
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || notificationManager.areNotificationsEnabled()) {
+    if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.N || notificationManager.areNotificationsEnabled()) &&
+      PermissionUtil.havePostNotificationPermission(context)
+    ) {
       NotificationChannelUtil.setupNotificationChannel(
         notificationManager,
         Constants.DOWNLOAD_CHANNEL, context.getString(R.string.notification_channel_download)

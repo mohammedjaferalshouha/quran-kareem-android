@@ -42,8 +42,8 @@ android {
   namespace = "com.quran.labs.androidquran"
 
   defaultConfig {
-    versionCode = 10000
-    versionName = "1.0.0"
+    versionCode = 10107
+    versionName = "1.1.7"
     testInstrumentationRunner = "com.quran.labs.androidquran.core.QuranTestRunner"
   }
 
@@ -125,6 +125,23 @@ android {
   packaging {
     resources {
       excludes += setOf("META-INF/*.kotlin_module", "META-INF/DEPENDENCIES", "META-INF/INDEX.LIST")
+    }
+  }
+}
+
+tasks.configureEach {
+  val normalizedTaskName = name.lowercase(Locale.US)
+  val createsInstallableArtifact =
+    normalizedTaskName.startsWith("package") ||
+      normalizedTaskName.startsWith("bundle") ||
+      normalizedTaskName.startsWith("assemble")
+  val isProtectedBuild =
+    normalizedTaskName.contains("release") || normalizedTaskName.contains("beta")
+  if (createsInstallableArtifact && isProtectedBuild) {
+    doFirst {
+      check(hasReleaseSigning) {
+        "Release signing is required. Provide STORE_FILE, STORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD."
+      }
     }
   }
 }

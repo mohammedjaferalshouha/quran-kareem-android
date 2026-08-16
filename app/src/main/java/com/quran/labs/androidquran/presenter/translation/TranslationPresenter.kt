@@ -53,6 +53,8 @@ class TranslationPresenter @Inject internal constructor(
             result.ayahInformation
           )
           screen.updateScrollPosition()
+        } else if (screen != null) {
+          screen.onArabicTextUnavailable()
         }
       }
   }
@@ -77,5 +79,7 @@ class TranslationPresenter @Inject internal constructor(
     )
 
     fun updateScrollPosition()
+
+    fun onArabicTextUnavailable() = Unit
   }
 }

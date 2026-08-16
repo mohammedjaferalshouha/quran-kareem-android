@@ -9,6 +9,7 @@ import com.quran.data.core.QuranInfo
 import com.quran.data.core.QuranPageInfo
 import com.quran.data.dao.BookmarksDao
 import com.quran.data.dao.Settings
+import com.quran.data.dao.TranslationsDao
 import com.quran.data.model.SuraAyah
 import com.quran.data.model.selection.AyahSelection
 import com.quran.data.model.selection.SelectionIndicator
@@ -53,6 +54,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -70,6 +73,7 @@ class QuranLineByLinePresenter @Inject constructor(
   private val crashReporter: CrashReporter,
   private val quranInfo: QuranInfo,
   private val imlaeiUthmaniMapper: ImlaeiUthmaniMapper,
+  private val translationsDao: TranslationsDao,
   pages: IntArray
 ) {
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -109,10 +113,17 @@ class QuranLineByLinePresenter @Inject constructor(
   }
 
   fun loadPage(): Flow<PageInfo> {
+    val accessibilityAyahs = flow {
+      emit(
+        translationsDao.ayahs(quranInfo.getVerseRangeForPage(page)).toImmutableList()
+      )
+    }.onStart { emit(persistentListOf()) }
+
     return combine(
       pageSelection(),
-      lineByLineSettings.displaySettingsFlow
-    ) { highlights, displaySettings ->
+      lineByLineSettings.displaySettingsFlow,
+      accessibilityAyahs
+    ) { highlights, displaySettings, pageAccessibilityAyahs ->
       val displayText = DisplayText(
         quranPageInfo.suraName(page),
         quranPageInfo.juz(page),
@@ -148,7 +159,8 @@ class QuranLineByLinePresenter @Inject constructor(
         sidelines,
         targetScrollPosition,
         showSidelines,
-        quranPageInfo.skippedPagesCount()
+        quranPageInfo.skippedPagesCount(),
+        pageAccessibilityAyahs
       )
     }
   }
@@ -178,6 +190,7 @@ class QuranLineByLinePresenter @Inject constructor(
 
   suspend fun startSelection(x: Float, y: Float) {
     selectionStartSuraAyah = null
+    readingEventPresenter.onAyahSelection(AyahSelection.None)
     selectionHelper.startSelection(x, y)
     modifySelectionRange(0f, 0f)
   }
@@ -229,7 +242,15 @@ class QuranLineByLinePresenter @Inject constructor(
   suspend fun endSelection() {
     selectionStartSuraAyah = null
     selectionHelper.endSelection()
-    val currentSelection = readingEventPresenter.ayahSelectionFlow.value
+    publishSelectionWithToolbar(readingEventPresenter.ayahSelectionFlow.value)
+  }
+
+  suspend fun selectAyahForAccessibility(sura: Int, ayah: Int) {
+    readingEventPresenter.onAyahSelection(AyahSelection.Ayah(SuraAyah(sura, ayah)))
+    publishSelectionWithToolbar(readingEventPresenter.ayahSelectionFlow.value)
+  }
+
+  private suspend fun publishSelectionWithToolbar(currentSelection: AyahSelection) {
     if (currentSelection !is AyahSelection.None &&
       (currentSelection.selectionIndicator() is SelectionIndicator.None ||
           currentSelection.selectionIndicator() is SelectionIndicator.ScrollOnly)
@@ -249,6 +270,8 @@ class QuranLineByLinePresenter @Inject constructor(
           readingEventPresenter.onAyahSelection(updated)
         }
       }
+    } else if (currentSelection !is AyahSelection.None) {
+      readingEventPresenter.onAyahSelection(currentSelection)
     }
   }
 

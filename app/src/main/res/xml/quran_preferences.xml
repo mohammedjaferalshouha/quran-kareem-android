@@ -91,6 +91,12 @@
       android:title="@string/prefs_category_reading"
       app:iconSpaceReserved="false">
 
+    <Preference
+        android:key="@string/prefs_page_type"
+        android:summary="@string/prefs_page_type_summary"
+        android:title="@string/prefs_page_type_title"
+        app:iconSpaceReserved="false" />
+
     <CheckBoxPreference
         android:defaultValue="true"
         android:key="@string/prefs_overlay_page_info"

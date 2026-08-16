@@ -128,7 +128,13 @@ class AyahTranslationFragment : AyahActionFragment(), TranslationScreen {
       translator.visibility = View.GONE
       translationView.visibility = View.GONE
     } else {
-      val activeTranslationsFilesNames = quranSettings.activeTranslations
+      val ayahTafsir = selectAyahTafsir(
+        translations,
+        quranSettings.activeTranslations,
+        quranSettings.ayahTafsir
+      )
+      quranSettings.ayahTafsir = ayahTafsir?.filename
+      val selectedTafsir = ayahTafsir?.filename?.let(::mutableSetOf) ?: mutableSetOf()
 
       val adapter = translationAdapter
       if (adapter == null) {
@@ -137,10 +143,10 @@ class AyahTranslationFragment : AyahActionFragment(), TranslationScreen {
           R.layout.translation_ab_spinner_item,
           translations.map { it.resolveTranslatorName() }.toTypedArray(),
           translations,
-          activeTranslationsFilesNames,
+          selectedTafsir,
+          true,
         ) { selectedItems: Set<String?>? ->
-          quranSettings.activeTranslations = selectedItems
-          // this is the refresh for when a translation is selected from the spinner
+          quranSettings.ayahTafsir = selectedItems?.firstOrNull()
           refreshView()
         }
         translator.adapter = translationAdapter
@@ -148,7 +154,7 @@ class AyahTranslationFragment : AyahActionFragment(), TranslationScreen {
         adapter.updateItems(
           translations.map { it.resolveTranslatorName() }.toTypedArray(),
           translations,
-          activeTranslationsFilesNames
+          selectedTafsir
         )
       }
       refreshView()
@@ -167,7 +173,7 @@ class AyahTranslationFragment : AyahActionFragment(), TranslationScreen {
     )
     val verseRange = VerseRange(start.sura, start.ayah, end.sura, end.ayah, verses)
     scope.launch {
-      translationPresenter.refresh(verseRange)
+      translationPresenter.refresh(verseRange, quranSettings.ayahTafsir)
     }
   }
 
@@ -186,4 +192,14 @@ class AyahTranslationFragment : AyahActionFragment(), TranslationScreen {
       emptyState.visibility = View.VISIBLE
     }
   }
+}
+
+internal fun selectAyahTafsir(
+  translations: List<LocalTranslation>,
+  activeTranslations: Set<String>,
+  preferredTafsir: String?
+): LocalTranslation? {
+  return translations.firstOrNull { it.filename == preferredTafsir }
+    ?: translations.firstOrNull { it.filename in activeTranslations }
+    ?: translations.firstOrNull()
 }

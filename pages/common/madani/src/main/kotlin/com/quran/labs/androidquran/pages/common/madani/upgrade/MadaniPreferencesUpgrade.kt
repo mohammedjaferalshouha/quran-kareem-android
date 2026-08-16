@@ -31,4 +31,5 @@ class MadaniPreferencesUpgrade @Inject constructor(private val settings: Setting
     }
     return true
   }
+
 }

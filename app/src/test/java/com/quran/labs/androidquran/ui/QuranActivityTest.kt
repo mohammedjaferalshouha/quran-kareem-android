@@ -18,7 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 
-@Config(application = TestApplication::class, sdk = [33])
+@Config(application = TestApplication::class, sdk = [33], qualifiers = "en")
 @RunWith(RobolectricTestRunner::class)
 class QuranActivityTest {
   @get:Rule
@@ -37,7 +37,7 @@ class QuranActivityTest {
   @Test
   fun testClickingOnSuraOnListViewNavigatesToSura() {
     //given
-    Espresso.onView(ViewMatchers.withText(Matchers.startsWith("Quran")))
+    Espresso.onView(ViewMatchers.withText(com.quran.labs.androidquran.R.string.app_name))
         .check(ViewAssertions.matches(ViewMatchers.isDisplayed()))
 
     //when

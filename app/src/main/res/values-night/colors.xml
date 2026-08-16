@@ -15,6 +15,7 @@
   <color name="toolbar_secondary_text">#ffffffff</color>
   <color name="panel_background_color">#ff212121</color>
   <color name="translation_translator_color">#ffa7ffeb</color>
+  <color name="quran_text_sura_header">#ff34d399</color>
   <color name="icon_tint">#ffffffff</color>
   <color name="indicator_color">@color/accent_color</color>
   <color name="color_control_activated">@color/accent_color</color>

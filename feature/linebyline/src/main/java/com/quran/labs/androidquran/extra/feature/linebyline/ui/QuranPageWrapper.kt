@@ -3,7 +3,11 @@ package com.quran.labs.androidquran.extra.feature.linebyline.ui
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -11,9 +15,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import com.quran.data.source.PageContentType
 import com.quran.labs.androidquran.extra.feature.linebyline.model.PageInfo
 import com.quran.labs.androidquran.extra.feature.linebyline.model.SidelinesPosition
+import com.quran.labs.androidquran.extra.feature.linebyline.model.buildAyahAccessibilityText
+import com.quran.labs.androidquran.extra.feature.linebyline.R
 import java.text.NumberFormat
 import kotlin.math.ln1p
 import kotlin.math.min
@@ -23,13 +34,15 @@ fun QuranPageWrapper(
   pageInfo: PageInfo,
   pageContentType: PageContentType,
   dualScreenMode: Boolean,
+  forcePageFit: Boolean,
   suraHeaderBitmap: ImageBitmap,
   ayahNumberFormatter: NumberFormat,
   onClick: () -> Unit,
   onPagePositioned: (Float, Float, Int, Int) -> Unit,
   onSelectionStart: (Float, Float) -> Unit,
   onSelectionModified: (Float, Float) -> Unit,
-  onSelectionEnd: () -> Unit
+  onSelectionEnd: () -> Unit,
+  onAccessibilityAyahSelected: (Int, Int) -> Unit
 ) {
   val displaySettings = pageInfo.displaySettings
 
@@ -43,7 +56,7 @@ fun QuranPageWrapper(
   val showHeaderFooter = displaySettings.showHeaderFooter
 
   val orientation = LocalConfiguration.current.orientation
-  val isScrollable = (!dualScreenMode && orientation == Configuration.ORIENTATION_LANDSCAPE)
+  val isScrollable = shouldScrollLinePage(dualScreenMode, orientation, forcePageFit)
 
   val isNightMode = displaySettings.isNightMode
   val overlayColor = if (isNightMode) {
@@ -112,7 +125,8 @@ fun QuranPageWrapper(
   }
   val colorFilter = ColorFilter.tint(lineColor)
 
-  QuranPage(
+  Box {
+    QuranPage(
     pageInfo,
     pageContentType,
     isScrollable,
@@ -201,15 +215,46 @@ fun QuranPageWrapper(
     onSelectionStart,
     onSelectionModified,
     onSelectionEnd,
-    modifier = Modifier.clickable(
-      interactionSource = remember { MutableInteractionSource() },
-      indication = null
-    ) {
-      onClick()
-    },
-    isNightMode,
-    nightModeBackgroundBrightness = backgroundBrightness
-  )
+      modifier = Modifier.clickable(
+        interactionSource = remember { MutableInteractionSource() },
+        indication = null
+      ) {
+        onClick()
+      },
+      isNightMode,
+      nightModeBackgroundBrightness = backgroundBrightness
+    )
+
+    val selectAyahLabel = stringResource(R.string.accessibility_select_ayah)
+    Column(modifier = Modifier.fillMaxSize()) {
+      pageInfo.accessibilityAyahs.forEach { ayah ->
+        Spacer(
+          modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth()
+            .clearAndSetSemantics {
+              contentDescription = buildAyahAccessibilityText(ayah)
+              customActions = listOf(
+                CustomAccessibilityAction(selectAyahLabel) {
+                  onAccessibilityAyahSelected(ayah.sura, ayah.ayah)
+                  true
+                }
+              )
+            }
+        )
+      }
+    }
+  }
+}
+
+internal fun shouldScrollLinePage(
+  dualScreenMode: Boolean,
+  orientation: Int,
+  forcePageFit: Boolean
+): Boolean {
+  return !dualScreenMode &&
+    orientation == Configuration.ORIENTATION_LANDSCAPE &&
+    !forcePageFit
 }
 
 private fun shouldShowLineFor(page: Int, line: Int): Boolean {

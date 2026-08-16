@@ -39,15 +39,21 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Implementation
+import org.robolectric.annotation.Implements
 import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
 
-@Config(application = TestApplication::class, sdk = [33])
+@Config(
+  application = TestApplication::class,
+  sdk = [33],
+  shadows = [ShadowFileProvider::class]
+)
 @RunWith(RobolectricTestRunner::class)
 class BookmarkImportExportModelTest {
 
-  private val context = ApplicationProvider.getApplicationContext<Context>()
+  private lateinit var context: Context
   private lateinit var bookmarksDao: FakeBookmarksDao
   private lateinit var recentPagesDao: FakeRecentPagesDao
   private lateinit var readingBookmarksDao: FakeReadingBookmarksDao
@@ -58,6 +64,7 @@ class BookmarkImportExportModelTest {
 
   @Before
   fun setUp() {
+    context = ApplicationProvider.getApplicationContext()
     bookmarksDao = FakeBookmarksDao()
     recentPagesDao = FakeRecentPagesDao()
     readingBookmarksDao = FakeReadingBookmarksDao()
@@ -131,6 +138,18 @@ class BookmarkImportExportModelTest {
       .subscribe(testObserver)
     BaseTestExtension.awaitTerminalEvent(testObserver)
     testObserver.assertValueCount(0)
+    testObserver.assertError(IOException::class.java)
+  }
+
+  @Test
+  fun testRejectsOversizedBookmarkBackup() {
+    val source = Buffer().write(ByteArray(10 * 1024 * 1024 + 1))
+    val testObserver = TestObserver<BookmarkData>()
+
+    bookmarkImportExportModel.readBookmarks(source).subscribe(testObserver)
+    BaseTestExtension.awaitTerminalEvent(testObserver)
+
+    testObserver.assertNoValues()
     testObserver.assertError(IOException::class.java)
   }
 
@@ -571,5 +590,18 @@ class BookmarkImportExportModelTest {
     private const val TAGS_JSON =
       "{\"bookmarks\":[],\"tags\":[{\"id\":1,\"name\":\"First\"}," +
         "{\"id\":2,\"name\":\"Second\"},{\"id\":3,\"name\":\"Third\"}]}"
+  }
+}
+
+@Implements(value = FileProvider::class, isInAndroidSdk = false)
+object ShadowFileProvider {
+  @Implementation
+  @JvmStatic
+  fun getUriForFile(context: Context, authority: String, file: File): Uri {
+    return Uri.Builder()
+      .scheme("content")
+      .authority(authority)
+      .appendPath(file.name)
+      .build()
   }
 }

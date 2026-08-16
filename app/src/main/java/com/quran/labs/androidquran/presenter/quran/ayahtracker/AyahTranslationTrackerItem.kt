@@ -18,7 +18,12 @@ class AyahTranslationTrackerItem(
     page: Int, sura: Int, ayah: Int, word: Int, type: HighlightType, scrollToAyah: Boolean
   ): Boolean {
     if (this.page == page) {
-      ayahView.highlightAyah(SuraAyah(sura, ayah), quranInfo.getAyahId(sura, ayah), type)
+      ayahView.highlightAyah(
+        SuraAyah(sura, ayah),
+        quranInfo.getAyahId(sura, ayah),
+        type,
+        scrollToAyah
+      )
       return true
     }
     ayahView.unhighlightAyah(type)

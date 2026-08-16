@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment
 import com.quran.data.core.QuranInfo
 import com.quran.data.model.SuraAyah
 import com.quran.data.model.selection.AyahSelection
+import com.quran.data.model.selection.SelectionIndicator
 import com.quran.labs.androidquran.common.QuranAyahInfo
 import com.quran.labs.androidquran.data.QuranDisplayData
 import com.quran.labs.androidquran.presenter.quran.ayahtracker.AyahTrackerItem
@@ -38,6 +39,7 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
   TranslationPresenter.TranslationScreen, PageController {
   private var pageNumber = 0
   private var scrollPosition = 0
+  private var pendingVerticalPageStart: Boolean? = null
   private var ayahTrackerItems: Array<AyahTrackerItem>? = null
 
   private lateinit var mainView: QuranTranslationPageLayout
@@ -113,11 +115,8 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
   }
 
   override fun zoomBy(delta: Float) {
-    val step = if (delta > 0) TEXT_SIZE_STEP else -TEXT_SIZE_STEP
-    val size = (quranSettings.ayahTextSize + step).coerceIn(MIN_TEXT_SIZE, MAX_TEXT_SIZE)
-    if (size != quranSettings.ayahTextSize) {
-      quranSettings.setAyahTextSize(size)
-      translationView.refresh(quranSettings)
+    if (this::mainView.isInitialized) {
+      mainView.zoomBy(delta, quranSettings)
     }
   }
 
@@ -161,7 +160,8 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
         translationView.highlightAyah(
           suraAyah,
           quranInfo.getAyahId(suraAyah.sura, suraAyah.ayah),
-          HighlightTypes.SELECTION
+          HighlightTypes.SELECTION,
+          currentSelection.selectionIndicator is SelectionIndicator.ScrollOnly
         )
       }
     }
@@ -169,6 +169,11 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
 
   override fun updateScrollPosition() {
     translationView.setScrollPosition(scrollPosition)
+    applyPendingVerticalPageEntry()
+  }
+
+  override fun onArabicTextUnavailable() {
+    (activity as? PagerActivity)?.onArabicTextUnavailable(pageNumber)
   }
 
   fun refresh() {
@@ -232,7 +237,18 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
     (activity as? PagerActivity)?.moveToAdjacentVerticalPage(forward)
   }
 
-  fun scrollToVerticalPageEdge(start: Boolean) {
+  fun prepareVerticalPageEntry(start: Boolean) {
+    pendingVerticalPageStart = start
+    applyPendingVerticalPageEntry()
+  }
+
+  private fun applyPendingVerticalPageEntry() {
+    val start = pendingVerticalPageStart ?: return
+    if (!this::translationView.isInitialized || !translationView.isFlowingQuranTextReady) {
+      return
+    }
+
+    pendingVerticalPageStart = null
     if (start) {
       translationView.scrollToPageStart()
     } else {
@@ -240,16 +256,9 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
     }
   }
 
-  fun isVerticalPageReady(): Boolean {
-    return this::translationView.isInitialized && translationView.isFlowingQuranTextReady
-  }
-
   companion object {
     private const val PAGE_NUMBER_EXTRA = "pageNumber"
     private const val SI_SCROLL_POSITION = "SI_SCROLL_POSITION"
-    private const val MIN_TEXT_SIZE = 9
-    private const val MAX_TEXT_SIZE = 60
-    private const val TEXT_SIZE_STEP = 3
     fun newInstance(page: Int): TranslationFragment {
       val f = TranslationFragment()
       val args = Bundle()

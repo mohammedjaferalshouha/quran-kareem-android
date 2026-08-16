@@ -75,6 +75,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
 
   private SuraAyah selectedAyah;
   private int selectedAyahId = -1;
+  private boolean shouldScrollToSelectedAyah;
   private OnClickListener onClickListener;
   private final LinearLayoutManager layoutManager;
   private PageController pageController;
@@ -88,6 +89,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
   private DisplayMode displayMode = DisplayMode.QURAN_TEXT;
   private int pendingScrollSura = -1;
   private int pendingScrollAyah = -1;
+  private boolean isolateTranslationScrollFromPager;
 
   public enum DisplayMode {
     QURAN_TEXT,
@@ -104,6 +106,10 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
 
   public TranslationView(Context context, AttributeSet attrs, int defStyleAttr) {
     super(context, attrs, defStyleAttr);
+    // A translation page is animated as one ViewPager item. Keep every child inside that
+    // page's bounds so an internally scrolling text page cannot draw over an adjacent page.
+    setClipChildren(true);
+    setClipToPadding(true);
     translationRecycler = new RecyclerView(context);
     layoutManager = new LinearLayoutManager(context);
     translationRecycler.setLayoutManager(layoutManager);
@@ -121,6 +127,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     quranTextView.setTypeface(TypefaceManager.INSTANCE.getUthmaniTypeface(context));
     quranTextView.setOnClickListener(this);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      //noinspection WrongConstant -- Layout and LineBreaker use the same public strategy value.
       quranTextView.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_BALANCED);
       quranTextView.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
     }
@@ -128,6 +135,8 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     quranTextScroll = new BoundaryAwareNestedScrollView(context);
     quranTextScroll.setFillViewport(true);
     quranTextScroll.setSmoothScrollingEnabled(true);
+    quranTextScroll.setClipChildren(true);
+    quranTextScroll.setClipToPadding(true);
     quranTextScroll.addView(quranTextView,
         new NestedScrollView.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
     quranTextScroll.setVisibility(GONE);
@@ -158,13 +167,14 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
 
     quranTextScroll.setOnScrollChangeListener(
         (NestedScrollView.OnScrollChangeListener) (view, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-          notifyAutomaticReadingPosition(scrollY);
-          quranTextScroll.checkForPageBoundary(scrollY, oldScrollY);
+          if (quranTextScroll.isRecentUserScroll() || pendingScrollSura > 0) {
+            notifyAutomaticReadingPosition(scrollY);
+          }
         });
     quranTextScroll.setBoundaryNavigationListener(new BoundaryNavigationListener() {
       @Override
       public boolean isEnabled() {
-        return pageController != null && pageController.isVerticalPageNavigationEnabled();
+        return isVerticalPageNavigationEnabled();
       }
 
       @Override
@@ -249,6 +259,53 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     this.pageController = controller;
   }
 
+  public void setIsolateTranslationScrollFromPager(boolean isolate) {
+    isolateTranslationScrollFromPager = isolate;
+  }
+
+  public long[] getExpandedTafseerState() {
+    return translationAdapter.expandedTafseerState();
+  }
+
+  public void restoreExpandedTafseerState(@Nullable long[] state) {
+    if (state != null) {
+      translationAdapter.restoreExpandedTafseerState(state);
+    }
+  }
+
+  public long[] getExpandedFootnoteState() {
+    return translationAdapter.expandedFootnoteState();
+  }
+
+  public void restoreExpandedFootnoteState(@Nullable long[] state) {
+    if (state != null) {
+      translationAdapter.restoreExpandedFootnoteState(state);
+    }
+  }
+
+  private boolean isVerticalPageNavigationEnabled() {
+    return pageController != null && pageController.isVerticalPageNavigationEnabled();
+  }
+
+  @Override
+  public boolean dispatchTouchEvent(MotionEvent event) {
+    final boolean isolateGesture = isolateTranslationScrollFromPager &&
+        isVerticalPageNavigationEnabled() &&
+        translationRecycler.getVisibility() == VISIBLE;
+    final int action = event.getActionMasked();
+    if (isolateGesture && action == MotionEvent.ACTION_DOWN) {
+      requestDisallowInterceptTouchEvent(true);
+    }
+    try {
+      return super.dispatchTouchEvent(event);
+    } finally {
+      if (isolateGesture &&
+          (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL)) {
+        post(() -> requestDisallowInterceptTouchEvent(false));
+      }
+    }
+  }
+
   public void setVerses(@NonNull QuranDisplayData quranDisplayData,
                         @NonNull LocalTranslation[] translations,
                         @NonNull List<QuranAyahInfo> verses) {
@@ -300,6 +357,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
           }
           rows.add(new TranslationViewRow(
               TranslationViewRow.Type.TRANSLATION_TEXT, verse, text, j,
+              sortedTranslations[j].getId(),
               metadata == null ? null : metadata.getLink(),
               metadata == null ? null : metadata.getLinkPageNumber(),
               "ar".equals(sortedTranslations[j].getLanguageCode()),
@@ -319,16 +377,41 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
   public void refresh(@NonNull QuranSettings quranSettings) {
     translationAdapter.refresh(quranSettings);
     applyQuranTextSize(quranSettings.getAyahTextSize());
+    final int pageSurfaceColor;
     if (quranSettings.isNightMode()) {
       final int brightness = quranSettings.getNightModeTextBrightness();
+      final int backgroundBrightness = quranSettings.getNightModeBackgroundBrightness();
+      pageSurfaceColor = Color.rgb(
+          backgroundBrightness, backgroundBrightness, backgroundBrightness);
       quranTextView.setTextColor(Color.rgb(brightness, brightness, brightness));
       emptyTranslationView.setTextColor(Color.rgb(brightness, brightness, brightness));
       translationPageNumberView.setTextColor(Color.rgb(brightness, brightness, brightness));
     } else {
+      pageSurfaceColor = Color.WHITE;
       quranTextView.setTextColor(Color.rgb(22, 40, 72));
       emptyTranslationView.setTextColor(Color.rgb(22, 40, 72));
       translationPageNumberView.setTextColor(Color.rgb(22, 40, 72));
     }
+    // Match QuranTranslationPageLayout exactly, but make the animated text page itself opaque.
+    // This removes the visual page overlap without changing scrolling or boundary hand-off.
+    setBackgroundColor(pageSurfaceColor);
+    quranTextScroll.setBackgroundColor(pageSurfaceColor);
+    quranTextView.setBackgroundColor(pageSurfaceColor);
+  }
+
+  public boolean zoomBy(float delta, @NonNull QuranSettings quranSettings) {
+    final int step = delta > 0 ? TEXT_SIZE_STEP : -TEXT_SIZE_STEP;
+    final int currentSize = quranSettings.getAyahTextSize();
+    final int targetSize = Math.max(
+        MIN_TEXT_SIZE,
+        Math.min(MAX_TEXT_SIZE, currentSize + step));
+    if (targetSize == currentSize) {
+      return false;
+    }
+
+    quranSettings.setAyahTextSize(targetSize);
+    refresh(quranSettings);
+    return true;
   }
 
   public void setDisplayMode(@NonNull DisplayMode displayMode) {
@@ -395,10 +478,10 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     }
     quranTextView.setText(text, TextView.BufferType.SPANNABLE);
     refresh(QuranSettings.getInstance(getContext()));
-    if (selectedAyah != null) {
+    if (selectedAyah != null && shouldScrollToSelectedAyah) {
+      shouldScrollToSelectedAyah = false;
       scrollFlowingTextToAyah(selectedAyah.sura, selectedAyah.ayah);
     }
-    quranTextScroll.post(() -> notifyAutomaticReadingPosition(quranTextScroll.getScrollY()));
   }
 
   public void setTranslationClickedListener(OnClickListener listener) {
@@ -420,6 +503,21 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
         TranslationAdapter.ARABIC_MULTIPLIER * size);
   }
 
+  private static final int MIN_TEXT_SIZE = 9;
+  private static final int MAX_TEXT_SIZE = 60;
+  private static final int TEXT_SIZE_STEP = 3;
+
+  static boolean shouldRequestBoundaryPage(
+      boolean gestureStartedAtTop,
+      boolean gestureStartedAtBottom,
+      int direction,
+      float distance,
+      float minimumDistance) {
+    return distance >= minimumDistance &&
+        ((direction > 0 && gestureStartedAtBottom) ||
+            (direction < 0 && gestureStartedAtTop));
+  }
+
   @Override
   public void onJumpToAyah(@NonNull SuraAyah target, int page) {
     final Context context = getContext();
@@ -430,10 +528,15 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     context.startActivity(i);
   }
 
-  public void highlightAyah(SuraAyah suraAyah, int ayahId, HighlightType highlightType) {
+  public void highlightAyah(
+      SuraAyah suraAyah,
+      int ayahId,
+      HighlightType highlightType,
+      boolean scrollToAyah) {
     if (highlightType.equals(HighlightTypes.SELECTION)) {
       selectedAyah = suraAyah;
       selectedAyahId = ayahId;
+      shouldScrollToSelectedAyah = scrollToAyah;
     } else if (selectedAyah != null) {
       hideMenu();
     }
@@ -442,7 +545,10 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
       if (highlightType.equals(HighlightTypes.SELECTION)) {
         highlightFlowingAyah(suraAyah.sura, suraAyah.ayah);
       }
-      scrollFlowingTextToAyah(suraAyah.sura, suraAyah.ayah);
+      if (scrollToAyah) {
+        shouldScrollToSelectedAyah = false;
+        scrollFlowingTextToAyah(suraAyah.sura, suraAyah.ayah);
+      }
     } else if (shouldHandleHighlightType(highlightType)) {
       translationAdapter.setHighlightedAyah(ayahId, highlightType);
     }
@@ -460,6 +566,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     if (highlightType.equals(HighlightTypes.SELECTION)) {
       selectedAyah = null;
       selectedAyahId = -1;
+      shouldScrollToSelectedAyah = false;
     }
 
     if (shouldHandleHighlightType(highlightType)) {
@@ -478,6 +585,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     if (selectedAyah != null && highlightType.equals(HighlightTypes.SELECTION)) {
       selectedAyah = null;
       selectedAyahId = -1;
+      shouldScrollToSelectedAyah = false;
     }
 
     if (shouldHandleHighlightType(highlightType)) {
@@ -656,6 +764,20 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     return layoutManager.findFirstCompletelyVisibleItemPosition();
   }
 
+  public int[] getTranslationScrollAnchor() {
+    final int position = layoutManager.findFirstVisibleItemPosition();
+    final View firstView = position == RecyclerView.NO_POSITION
+        ? null : layoutManager.findViewByPosition(position);
+    return new int[] {
+        Math.max(0, position),
+        firstView == null ? 0 : layoutManager.getDecoratedTop(firstView)
+    };
+  }
+
+  public void restoreTranslationScrollAnchor(int position, int offset) {
+    layoutManager.scrollToPositionWithOffset(Math.max(0, position), offset);
+  }
+
   public void setScrollPosition(int position) {
     if (showingQuranText) {
       // A bookmark jump has priority over a fragment's previously restored
@@ -808,10 +930,12 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     private BoundaryNavigationListener boundaryNavigationListener;
     private long lastUserTouchAt;
     private float lastTouchY;
-    private float gestureDistance;
+    private float boundaryGestureDistance;
     private final int minimumGestureDistance;
     private int lastUserDirection;
     private boolean boundaryRequestPosted;
+    private boolean gestureStartedAtTop;
+    private boolean gestureStartedAtBottom;
 
     BoundaryAwareNestedScrollView(Context context) {
       super(context);
@@ -822,22 +946,43 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
       boundaryNavigationListener = listener;
     }
 
+    boolean isRecentUserScroll() {
+      return lastUserTouchAt > 0L &&
+          SystemClock.uptimeMillis() - lastUserTouchAt <= USER_SCROLL_WINDOW_MS;
+    }
+
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
       final int action = event.getActionMasked();
+      final boolean boundaryNavigationEnabled =
+          boundaryNavigationListener != null && boundaryNavigationListener.isEnabled();
       if (action == MotionEvent.ACTION_DOWN) {
         lastTouchY = event.getY();
-        gestureDistance = 0f;
+        boundaryGestureDistance = 0f;
         lastUserDirection = 0;
         boundaryRequestPosted = false;
+        gestureStartedAtTop = !canScrollVertically(-1);
+        gestureStartedAtBottom = !canScrollVertically(1);
         lastUserTouchAt = SystemClock.uptimeMillis();
+        if (boundaryNavigationEnabled) {
+          requestDisallowInterceptTouchEvent(true);
+        }
       } else if (action == MotionEvent.ACTION_MOVE) {
         final float currentY = event.getY();
         final float delta = currentY - lastTouchY;
         if (Math.abs(delta) >= 1f) {
           // Finger moving upward means reading forward.
-          lastUserDirection = delta < 0f ? 1 : -1;
-          gestureDistance += Math.abs(delta);
+          final int direction = delta < 0f ? 1 : -1;
+          final boolean startedAtRequestedBoundary =
+              direction > 0 ? gestureStartedAtBottom : gestureStartedAtTop;
+          if (startedAtRequestedBoundary && direction == lastUserDirection) {
+            boundaryGestureDistance += Math.abs(delta);
+          } else if (startedAtRequestedBoundary) {
+            boundaryGestureDistance = Math.abs(delta);
+          } else {
+            boundaryGestureDistance = 0f;
+          }
+          lastUserDirection = direction;
           lastTouchY = currentY;
         }
         lastUserTouchAt = SystemClock.uptimeMillis();
@@ -845,22 +990,30 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
         lastUserTouchAt = SystemClock.uptimeMillis();
       }
       final boolean handled = super.dispatchTouchEvent(event);
-      if (action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_UP) {
-        checkForPageBoundary(getScrollY(), getScrollY());
+      if (boundaryNavigationEnabled && action == MotionEvent.ACTION_UP) {
+        checkForPageBoundary();
+      }
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+        requestDisallowInterceptTouchEvent(false);
       }
       return handled;
     }
 
-    void checkForPageBoundary(int scrollY, int oldScrollY) {
+    void checkForPageBoundary() {
       if (boundaryRequestPosted || boundaryNavigationListener == null ||
           !boundaryNavigationListener.isEnabled() ||
-          gestureDistance < minimumGestureDistance ||
+          !shouldRequestBoundaryPage(
+              gestureStartedAtTop,
+              gestureStartedAtBottom,
+              lastUserDirection,
+              boundaryGestureDistance,
+              minimumGestureDistance) ||
           SystemClock.uptimeMillis() - lastUserTouchAt > USER_SCROLL_WINDOW_MS) {
         return;
       }
 
-      final boolean movingForward = scrollY > oldScrollY || lastUserDirection > 0;
-      final boolean movingBackward = scrollY < oldScrollY || lastUserDirection < 0;
+      final boolean movingForward = lastUserDirection > 0;
+      final boolean movingBackward = lastUserDirection < 0;
       if (movingForward && !canScrollVertically(1)) {
         postBoundaryRequest(true);
       } else if (movingBackward && !canScrollVertically(-1)) {

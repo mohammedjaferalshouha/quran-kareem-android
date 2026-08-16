@@ -2,6 +2,7 @@ package com.quran.labs.androidquran.extra.feature.linebyline.model
 
 import com.quran.mobile.linebyline.data.dao.AyahMarkerInfo
 import com.quran.mobile.linebyline.data.dao.SuraHeader
+import com.quran.data.model.QuranText
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
@@ -17,7 +18,8 @@ data class PageInfo(
   val sidelines: ImmutableList<SidelineModel>,
   val targetScrollPosition: Int,
   val showSidelines: Boolean,
-  val skippedPageCount: Int
+  val skippedPageCount: Int,
+  val accessibilityAyahs: ImmutableList<QuranText>
 )
 
 val EmptySettings =
@@ -43,5 +45,10 @@ val EmptyPageInfo =
     persistentListOf(),
     -1,
     false,
-    0
+    0,
+    persistentListOf()
   )
+
+internal fun buildAyahAccessibilityText(ayah: QuranText): String {
+  return "${ayah.text} ۝${ayah.ayah}"
+}

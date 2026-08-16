@@ -18,6 +18,7 @@ import com.quran.labs.androidquran.QuranAdvancedPreferenceActivity
 import com.quran.labs.androidquran.QuranApplication
 import com.quran.labs.androidquran.R
 import com.quran.labs.androidquran.data.Constants
+import com.quran.labs.androidquran.pageselect.PageSelectActivity
 import com.quran.labs.androidquran.ui.TranslationManagerActivity
 import com.quran.labs.androidquran.util.OrientationLockUtils
 import com.quran.labs.androidquran.util.QuranUtils
@@ -81,6 +82,12 @@ class QuranSettingsFragment : PreferenceFragmentCompat() {
     val audioManagerPref: Preference? = findPreference(Constants.PREF_AUDIO_MANAGER)
     audioManagerPref?.setOnPreferenceClickListener {
       startActivity(Intent(activity, AudioManagerActivity::class.java))
+      true
+    }
+
+    val pageTypePref: Preference? = findPreference(Constants.PREF_PAGE_TYPE)
+    pageTypePref?.setOnPreferenceClickListener {
+      startActivity(Intent(activity, PageSelectActivity::class.java))
       true
     }
 

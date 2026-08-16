@@ -4,9 +4,12 @@ import android.content.Context
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import com.quran.labs.androidquran.ui.helpers.AyahSelectedListener
 import com.quran.labs.androidquran.ui.util.PageController
 import com.quran.labs.androidquran.util.QuranSettings
+import kotlin.math.abs
+import kotlin.math.hypot
 
 /**
  * Layout class for a single Arabic page of the Quran, with margins/background.
@@ -18,6 +21,14 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
 
   private lateinit var imageView: HighlightingImageView
   private var zoomScale = 1f
+  private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+  private var downX = 0f
+  private var downY = 0f
+  private var handOffToPager = false
+  private var startedAtPositiveXEdge = false
+  private var startedAtNegativeXEdge = false
+  private var startedAtPositiveYEdge = false
+  private var startedAtNegativeYEdge = false
 
   init {
     this.initialize()
@@ -40,12 +51,54 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
     super.setPageController(controller, pageNumber, skips)
     val gestureDetector = GestureDetector(context, PageGestureDetector())
     val gestureListener = OnTouchListener { _, event ->
-      if (event.actionMasked == MotionEvent.ACTION_DOWN && zoomScale > MIN_ZOOM) {
-        parent?.requestDisallowInterceptTouchEvent(true)
+      if (zoomScale > MIN_ZOOM) {
+        when (event.actionMasked) {
+          MotionEvent.ACTION_DOWN -> {
+            downX = event.x
+            downY = event.y
+            handOffToPager = false
+            val maxX = maxTranslationX()
+            val maxY = maxTranslationY()
+            startedAtPositiveXEdge = imageView.translationX >= maxX - EDGE_TOLERANCE_PX
+            startedAtNegativeXEdge = imageView.translationX <= -maxX + EDGE_TOLERANCE_PX
+            startedAtPositiveYEdge = imageView.translationY >= maxY - EDGE_TOLERANCE_PX
+            startedAtNegativeYEdge = imageView.translationY <= -maxY + EDGE_TOLERANCE_PX
+            parent?.requestDisallowInterceptTouchEvent(true)
+          }
+
+          MotionEvent.ACTION_MOVE -> {
+            val deltaX = event.x - downX
+            val deltaY = event.y - downY
+            if (!handOffToPager && hypot(deltaX, deltaY) > touchSlop) {
+              handOffToPager = shouldHandOffToPager(
+                deltaX,
+                deltaY,
+                startedAtPositiveXEdge,
+                startedAtNegativeXEdge,
+                startedAtPositiveYEdge,
+                startedAtNegativeYEdge
+              )
+              if (handOffToPager) {
+                val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+                gestureDetector.onTouchEvent(cancel)
+                cancel.recycle()
+                parent?.requestDisallowInterceptTouchEvent(false)
+                return@OnTouchListener false
+              }
+            }
+          }
+
+          MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+            parent?.requestDisallowInterceptTouchEvent(false)
+            if (handOffToPager) {
+              handOffToPager = false
+              return@OnTouchListener false
+            }
+          }
+        }
       }
       val gestureHandled = gestureDetector.onTouchEvent(event)
-      if ((event.actionMasked == MotionEvent.ACTION_UP ||
-          event.actionMasked == MotionEvent.ACTION_CANCEL) && zoomScale <= MIN_ZOOM) {
+      if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
         parent?.requestDisallowInterceptTouchEvent(false)
       }
       zoomScale > MIN_ZOOM || gestureHandled
@@ -78,7 +131,6 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
           imageView.setLayerType(View.LAYER_TYPE_NONE, null)
         }
         .start()
-      parent?.requestDisallowInterceptTouchEvent(true)
     }
   }
 
@@ -88,7 +140,7 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
     imageView.scaleX = zoomScale
     imageView.scaleY = zoomScale
     clampTranslation()
-    parent?.requestDisallowInterceptTouchEvent(zoomScale > MIN_ZOOM)
+    parent?.requestDisallowInterceptTouchEvent(false)
   }
 
   private fun resetZoom(animated: Boolean) {
@@ -114,11 +166,15 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
   }
 
   private fun clampTranslation() {
-    val maxX = imageView.width * (zoomScale - 1f) / 2f
-    val maxY = imageView.height * (zoomScale - 1f) / 2f
+    val maxX = maxTranslationX()
+    val maxY = maxTranslationY()
     imageView.translationX = imageView.translationX.coerceIn(-maxX, maxX)
     imageView.translationY = imageView.translationY.coerceIn(-maxY, maxY)
   }
+
+  private fun maxTranslationX(): Float = imageView.width * (zoomScale - MIN_ZOOM) / 2f
+
+  private fun maxTranslationY(): Float = imageView.height * (zoomScale - MIN_ZOOM) / 2f
 
   inner class PageGestureDetector : GestureDetector.SimpleOnGestureListener() {
     override fun onDown(e: MotionEvent): Boolean = true
@@ -169,5 +225,23 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
     private const val MAX_ZOOM = 4f
     private const val RESET_ANIMATION_DURATION_MS = 160L
     private const val ZOOM_ANIMATION_DURATION_MS = 120L
+    private const val EDGE_TOLERANCE_PX = 1f
+
+    internal fun shouldHandOffToPager(
+      deltaX: Float,
+      deltaY: Float,
+      startedAtPositiveXEdge: Boolean,
+      startedAtNegativeXEdge: Boolean,
+      startedAtPositiveYEdge: Boolean,
+      startedAtNegativeYEdge: Boolean
+    ): Boolean {
+      return if (abs(deltaX) > abs(deltaY)) {
+        (deltaX > 0f && startedAtPositiveXEdge) ||
+          (deltaX < 0f && startedAtNegativeXEdge)
+      } else {
+        (deltaY > 0f && startedAtPositiveYEdge) ||
+          (deltaY < 0f && startedAtNegativeYEdge)
+      }
+    }
   }
 }

@@ -391,12 +391,10 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
     val page = quranInfo.getPageFromSuraAyah(sura, ayah)
     val intent = if (canOpenReaderDirectly()) {
       Intent(this, PagerActivity::class.java).apply {
+        prepareForReaderReuse(jumpToTranslation)
         putExtra("page", page)
         putExtra(PagerActivity.EXTRA_HIGHLIGHT_SURA, sura)
         putExtra(PagerActivity.EXTRA_HIGHLIGHT_AYAH, ayah)
-        if (jumpToTranslation) {
-          putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
-        }
       }
     } else {
       QuranDataActivity.openPageIntent(

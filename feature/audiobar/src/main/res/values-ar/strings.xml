@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="audio_play">تشغيل التلاوة</string>
+  <string name="audio_pause">إيقاف التلاوة مؤقتًا</string>
+  <string name="audio_stop">إيقاف التلاوة</string>
+  <string name="audio_previous">الآية السابقة</string>
+  <string name="audio_next">الآية التالية</string>
+  <string name="audio_repeat">عدد مرات التكرار</string>
+  <string name="audio_speed">سرعة التلاوة</string>
+  <string name="audio_settings">إعدادات التلاوة</string>
+  <string name="audio_change_qari">تغيير القارئ</string>
+  <string name="audio_record">تسجيل التلاوة</string>
+  <string name="recitation_hide_verses">إخفاء الآيات</string>
+  <string name="recitation_end">إنهاء جلسة التلاوة</string>
+  <string name="recitation_transcript">نص التلاوة</string>
+</resources>

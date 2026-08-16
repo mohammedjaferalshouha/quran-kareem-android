@@ -25,8 +25,8 @@ object Constants {
   const val MAX_RECENT_PAGES = 3
 
   // quranapp
-  const val QURAN_APP_BASE = "http://quranapp.com/"
-  const val QURAN_APP_ENDPOINT = "http://quranapp.com/note"
+  const val QURAN_APP_BASE = "https://quranapp.com/"
+  const val QURAN_APP_ENDPOINT = "https://quranapp.com/note"
 
   // Notification Ids
   const val NOTIFICATION_ID_DOWNLOADING = 1
@@ -57,6 +57,7 @@ object Constants {
   const val PREF_TRANSLATION_TEXT_SIZE = "translationTextSize"
   const val PREF_ACTIVE_TRANSLATION = "activeTranslation"
   const val PREF_ACTIVE_TRANSLATIONS = "activeTranslations"
+  const val PREF_AYAH_TAFSIR = "ayahTafsir"
   const val PREF_NIGHT_MODE = "nightMode"
   const val PREF_NIGHT_MODE_TEXT_BRIGHTNESS = "nightModeTextBrightness"
   const val PREF_NIGHT_MODE_BACKGROUND_BRIGHTNESS = "nightModeBackgroundBrightness"

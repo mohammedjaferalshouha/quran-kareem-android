@@ -502,8 +502,10 @@ class QuranDataActivity : AppCompatActivity(), SimpleDownloadListener, OnRequest
       }
       ACTION_OPEN_PAGE -> {
         Intent(this, PagerActivity::class.java).apply {
-          addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
           val extras = sourceIntent.extras
+          prepareForReaderReuse(
+            extras?.getBoolean(PagerActivity.EXTRA_JUMP_TO_TRANSLATION) ?: false
+          )
           putExtra(
             "page",
             extras?.getInt("page", Constants.PAGES_FIRST) ?: Constants.PAGES_FIRST
@@ -519,12 +521,6 @@ class QuranDataActivity : AppCompatActivity(), SimpleDownloadListener, OnRequest
               putExtra(
                 PagerActivity.EXTRA_HIGHLIGHT_AYAH,
                 extras.getInt(PagerActivity.EXTRA_HIGHLIGHT_AYAH)
-              )
-            }
-            if (extras.containsKey(PagerActivity.EXTRA_JUMP_TO_TRANSLATION)) {
-              putExtra(
-                PagerActivity.EXTRA_JUMP_TO_TRANSLATION,
-                extras.getBoolean(PagerActivity.EXTRA_JUMP_TO_TRANSLATION)
               )
             }
           }
@@ -562,9 +558,7 @@ class QuranDataActivity : AppCompatActivity(), SimpleDownloadListener, OnRequest
         if (ayah != null) {
           putExtra(PagerActivity.EXTRA_HIGHLIGHT_AYAH, ayah)
         }
-        if (jumpToTranslation) {
-          putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
-        }
+        putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, jumpToTranslation)
       }
     }
   }

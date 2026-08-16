@@ -1,5 +1,39 @@
 # سجل التغييرات | Changelog
 
+## الإصدار ١٫١٫٧
+
+تاريخ الإصدار: ١٦ أغسطس ٢٠٢٦
+
+### المزايا والتحسينات
+
+- إضافة وضع صفحات مصحف المدينة لعام ١٤٤١ سطرًا بسطر مع إبقاء وضع النص المرن مستقلًا.
+- جعل وضع الصفحات الجديد الخيار الافتراضي مع إمكانية التبديل من الإعدادات.
+- تكبير أرقام الآيات وتحسين وضوح صفحات المصحف في الوضعين الفاتح والمظلم.
+- إظهار إجراءات الآية بالضغط المطوّل، مع تفسير الآية من المصدر المختار.
+- دعم تكبير صفحات المصحف وتمريرها ثم الانتقال عند الوصول إلى الحافة.
+- تسريع التنقل الرأسي وحفظ الحركات المتتابعة ومنع ظهور أدوات القراءة أثناء السحب.
+- حفظ السورة والآية ووضع القراءة عند تغيير السمة أو الاتجاه أو التبديل بين النص والصفحات.
+- تحسين العرض الأفقي وصفحتي القارئ والترجمة، مع تمرير التفسير وحفظ موضعه بصورة مستقلة.
+- تحسين أوصاف الوصول لأدوات الصوت وصفحات القرآن.
+- تقوية فك ملفات التنزيل، ومنع الاتصالات غير المشفرة، وتحسين استيراد النسخ الاحتياطية.
+- تصحيح اختصارات التطبيق ومسارات بناء النسخ التجريبية.
+
+## Version 1.1.7
+
+Release date: 16 August 2026
+
+- Added an optional line-by-line Madani 1441 Mushaf reader while preserving the flexible text reader.
+- Made the new page reader the default, with reader selection available in settings.
+- Improved ayah-number size and page clarity in light and dark themes.
+- Kept ayah actions on long press and added selected-ayah tafsir from the configured source.
+- Added zoomed-page panning with page handoff at content edges.
+- Improved vertical paging speed, queued rapid gestures, and kept controls hidden during page drags.
+- Preserved surah, ayah, and reader mode across theme, orientation, and reader changes.
+- Improved landscape split reading, independent tafsir scrolling, and scroll-position restoration.
+- Improved accessibility descriptions for audio controls and Quran pages.
+- Hardened archive extraction, disabled cleartext traffic, and improved backup importing.
+- Corrected application shortcuts and debug-build paths.
+
 ## الإصدار ١٫٠٫٠
 
 تاريخ الإصدار: ٢٨ يوليو ٢٠٢٦

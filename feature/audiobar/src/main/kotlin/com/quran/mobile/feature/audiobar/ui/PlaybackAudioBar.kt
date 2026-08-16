@@ -19,6 +19,7 @@ import com.quran.labs.androidquran.common.ui.core.QuranIcons
 import com.quran.labs.androidquran.common.ui.core.QuranTheme
 import com.quran.mobile.feature.audiobar.state.AudioBarState
 import com.quran.mobile.feature.audiobar.state.AudioBarUiEvent
+import com.quran.mobile.feature.audiobar.R
 
 @Composable
 internal fun PlayingAudioBar(
@@ -33,7 +34,7 @@ internal fun PlayingAudioBar(
         .width(40.dp)
         .weight(1f),
       onClick = { playbackEventSink(AudioBarUiEvent.PlayingPlaybackEvent.Pause) }) {
-      Icon(QuranIcons.Pause, contentDescription = "")
+      Icon(QuranIcons.Pause, contentDescription = stringResource(R.string.audio_pause))
     }
   }
 }
@@ -51,7 +52,7 @@ internal fun PausedAudioBar(
         .width(40.dp)
         .weight(1f),
       onClick = { pausedEventSink(AudioBarUiEvent.PausedPlaybackEvent.Play) }) {
-      Icon(QuranIcons.PlayArrow, contentDescription = "")
+      Icon(QuranIcons.PlayArrow, contentDescription = stringResource(R.string.audio_play))
     }
   }
 }
@@ -74,7 +75,7 @@ internal fun AudioBar(
           .width(40.dp)
           .weight(1f),
         onClick = { sink(AudioBarUiEvent.CommonPlaybackEvent.Stop) }) {
-        Icon(QuranIcons.Stop, contentDescription = "", modifier = Modifier.width(40.dp))
+        Icon(QuranIcons.Stop, contentDescription = stringResource(R.string.audio_stop), modifier = Modifier.width(40.dp))
       }
 
       IconButton(
@@ -82,7 +83,7 @@ internal fun AudioBar(
           .width(40.dp)
           .weight(1f),
         onClick = { sink(AudioBarUiEvent.CommonPlaybackEvent.Rewind) }) {
-        Icon(QuranIcons.FastRewind, contentDescription = "", modifier = Modifier.width(40.dp))
+        Icon(QuranIcons.FastRewind, contentDescription = stringResource(R.string.audio_previous), modifier = Modifier.width(40.dp))
       }
 
       actionButton()
@@ -92,13 +93,13 @@ internal fun AudioBar(
           .width(40.dp)
           .weight(1f),
         onClick = { sink(AudioBarUiEvent.CommonPlaybackEvent.FastForward) }) {
-        Icon(QuranIcons.FastForward, contentDescription = "", modifier = Modifier.width(40.dp))
+        Icon(QuranIcons.FastForward, contentDescription = stringResource(R.string.audio_next), modifier = Modifier.width(40.dp))
       }
 
       val infinity = stringResource(id = com.quran.mobile.common.ui.core.R.string.infinity)
       RepeatableButton(
         icon = QuranIcons.Repeat,
-        contentDescription = "",
+        contentDescription = stringResource(R.string.audio_repeat),
         values = REPEAT_VALUES,
         value = state.repeat,
         defaultValue = 0,
@@ -118,7 +119,7 @@ internal fun AudioBar(
 
       RepeatableButton(
         icon = QuranIcons.Speed,
-        contentDescription = "",
+        contentDescription = stringResource(R.string.audio_speed),
         values = SPEED_VALUES,
         value = state.speed,
         defaultValue = 1.0f,
@@ -135,7 +136,7 @@ internal fun AudioBar(
           .width(40.dp)
           .weight(1f),
         onClick = { sink(AudioBarUiEvent.CommonPlaybackEvent.ShowSettings) }) {
-        Icon(QuranIcons.Settings, contentDescription = "")
+        Icon(QuranIcons.Settings, contentDescription = stringResource(R.string.audio_settings))
       }
     }
   }

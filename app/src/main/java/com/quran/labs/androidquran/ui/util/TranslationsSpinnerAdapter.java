@@ -30,12 +30,14 @@ public class TranslationsSpinnerAdapter extends ArrayAdapter<String> {
   private List<LocalTranslation> translations;
   private Set<String> selectedItems;
   private OnSelectionChangedListener listener;
+  private boolean singleSelection;
 
   public TranslationsSpinnerAdapter(Context context,
                                     int resource,
                                     String[] translationNames,
                                     List<LocalTranslation> translations,
                                     Set<String> selectedItems,
+                                    boolean singleSelection,
                                     OnSelectionChangedListener listener) {
     // intentionally making a new ArrayList instead of using the constructor for String[].
     // this is because clear() relies on being able to clear the List passed into the constructor,
@@ -47,6 +49,7 @@ public class TranslationsSpinnerAdapter extends ArrayAdapter<String> {
     this.translationNames = translationNames;
     this.translations = translations;
     this.selectedItems = selectedItems;
+    this.singleSelection = singleSelection;
     this.listener = listener;
     addAll(translationNames);
   }
@@ -55,7 +58,11 @@ public class TranslationsSpinnerAdapter extends ArrayAdapter<String> {
     CheckBoxHolder holder = (CheckBoxHolder) ((View) buttonView.getParent()).getTag();
     LocalTranslation localTranslation = translations.get(holder.position);
 
-    if (selectedItems.contains(localTranslation.getFilename())) {
+    if (singleSelection) {
+      selectedItems.clear();
+      selectedItems.add(localTranslation.getFilename());
+      notifyDataSetChanged();
+    } else if (selectedItems.contains(localTranslation.getFilename())) {
         selectedItems.remove(localTranslation.getFilename());
     } else {
       selectedItems.add(localTranslation.getFilename());
@@ -91,7 +98,19 @@ public class TranslationsSpinnerAdapter extends ArrayAdapter<String> {
     }
     holder = (SpinnerHolder) convertView.getTag();
 
-    holder.title.setText(R.string.translations);
+    if (singleSelection && !selectedItems.isEmpty()) {
+      String selectedFilename = selectedItems.iterator().next();
+      int selectedIndex = -1;
+      for (int index = 0; index < translations.size(); index++) {
+        if (selectedFilename.equals(translations.get(index).getFilename())) {
+          selectedIndex = index;
+          break;
+        }
+      }
+      holder.title.setText(selectedIndex >= 0 ? translationNames[selectedIndex] : getContext().getString(R.string.translations));
+    } else {
+      holder.title.setText(R.string.translations);
+    }
     holder.subtitle.setVisibility(View.GONE);
 
     return convertView;

@@ -35,6 +35,7 @@
       android:allowBackup="true"
       android:fullBackupContent="@xml/backup"
       android:dataExtractionRules="@xml/data_extraction"
+      android:usesCleartextTraffic="false"
       android:networkSecurityConfig="@xml/network_security_config"
       android:supportsRtl="true"
       android:theme="@style/Quran"

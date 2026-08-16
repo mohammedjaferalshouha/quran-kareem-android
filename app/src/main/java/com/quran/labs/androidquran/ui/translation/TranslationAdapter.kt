@@ -61,9 +61,9 @@ internal class TranslationAdapter(
   private var highlightedStartPosition: Int = 0
   private var highlightType: HighlightType? = null
 
-  private val expandedTafseerAyahs = mutableSetOf<Pair<Int, Int>>()
+  private val expandedTafseerAyahs = mutableSetOf<Pair<Int, Long>>()
   private val expandedHyperlinks = mutableSetOf<Pair<Int, Int>>()
-  private val expandedFootnotes = mutableMapOf<QuranAyahInfo, List<Int>>()
+  private val expandedFootnotes = mutableMapOf<Pair<Int, Long>, List<Int>>()
 
   private val defaultClickListener = View.OnClickListener { this.handleClick(it) }
   private val defaultLongClickListener = View.OnLongClickListener { this.selectVerseRows(it) }
@@ -108,8 +108,8 @@ internal class TranslationAdapter(
   }
 
   fun setData(data: List<TranslationViewRow>) {
+    retainVisibleTafseerExpansions(expandedTafseerAyahs, data)
     this.data.clear()
-    expandedTafseerAyahs.clear()
     this.data.addAll(data)
     if (highlightedAyah > 0) {
       highlightAyah(highlightedAyah, true, highlightType ?: HighlightTypes.SELECTION, true)
@@ -257,7 +257,7 @@ internal class TranslationAdapter(
     val position = recyclerView.getChildAdapterPosition(view)
     if (position != RecyclerView.NO_POSITION) {
       val data = data[position]
-      val what = data.ayahInfo.ayahId to data.translationIndex
+      val what = expansionKey(data)
       if (expandedTafseerAyahs.contains(what)) {
         expandedTafseerAyahs.remove(what)
       } else {
@@ -353,7 +353,7 @@ internal class TranslationAdapter(
                 spannableBuilder.setSpan(span, range.first, range.last + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
               }
 
-              val expandedFootnotes = expandedFootnotes[row.ayahInfo] ?: emptyList()
+              val expandedFootnotes = expandedFootnotes[expansionKey(row)] ?: emptyList()
               val spannable = SpannableString(
                 row.footnoteCognizantText(
                   spannableBuilder,
@@ -366,7 +366,7 @@ internal class TranslationAdapter(
               when {
                 row.link != null && !expandHyperlink -> getAyahLink(row.link)
                 length > MAX_TAFSEER_LENGTH ->
-                  truncateTextIfNeeded(spannable, row.ayahInfo.ayahId, row.translationIndex)
+                  truncateTextIfNeeded(spannable, row.ayahInfo.ayahId, row.translationSourceId)
                 else -> spannable
               }
             }
@@ -456,8 +456,9 @@ internal class TranslationAdapter(
     val position = recyclerView.getChildAdapterPosition(view)
     if (position != RecyclerView.NO_POSITION) {
       val data = data[position]
-      val expanded = expandedFootnotes[data.ayahInfo] ?: listOf()
-      expandedFootnotes[data.ayahInfo] = expanded + number
+      val key = expansionKey(data)
+      val expanded = expandedFootnotes[key] ?: listOf()
+      expandedFootnotes[key] = expanded + number
       notifyItemChanged(position)
     }
   }
@@ -469,10 +470,10 @@ internal class TranslationAdapter(
   private fun truncateTextIfNeeded(
     text: CharSequence,
     ayahId: Int,
-    translationIndex: Int
+    translationSourceId: Long
   ): CharSequence {
     if (text.length > MAX_TAFSEER_LENGTH &&
-      !expandedTafseerAyahs.contains(ayahId to translationIndex)
+      !expandedTafseerAyahs.contains(ayahId to translationSourceId)
     ) {
       // let's truncate
       val lastSpace = text.indexOf(' ', MAX_TAFSEER_LENGTH)
@@ -550,4 +551,55 @@ internal class TranslationAdapter(
     private const val MAX_TAFSEER_LENGTH = 750
     private const val HIGHLIGHT_CHANGE = 1
   }
+
+  fun expandedTafseerState(): LongArray =
+    encodeTafseerExpansionState(expandedTafseerAyahs)
+
+  fun restoreExpandedTafseerState(state: LongArray) {
+    expandedTafseerAyahs.clear()
+    expandedTafseerAyahs.addAll(decodeTafseerExpansionState(state))
+    if (data.isNotEmpty()) {
+      retainVisibleTafseerExpansions(expandedTafseerAyahs, data)
+      notifyDataSetChanged()
+    }
+  }
+
+  fun expandedFootnoteState(): LongArray = expandedFootnotes.flatMap { (key, numbers) ->
+    numbers.flatMap { number -> listOf(key.first.toLong(), key.second, number.toLong()) }
+  }.toLongArray()
+
+  fun restoreExpandedFootnoteState(state: LongArray) {
+    expandedFootnotes.clear()
+    state.toList().chunked(3).forEach { item ->
+      if (item.size == 3) {
+        val key = item[0].toInt() to item[1]
+        expandedFootnotes[key] = (expandedFootnotes[key] ?: emptyList()) + item[2].toInt()
+      }
+    }
+    if (data.isNotEmpty()) {
+      notifyDataSetChanged()
+    }
+  }
 }
+
+internal fun retainVisibleTafseerExpansions(
+  expandedAyahs: MutableSet<Pair<Int, Long>>,
+  rows: List<TranslationViewRow>
+) {
+  val visibleAyahs = rows.asSequence()
+    .filter { it.type == TranslationViewRow.Type.TRANSLATION_TEXT }
+    .map(::expansionKey)
+    .toSet()
+  expandedAyahs.retainAll(visibleAyahs)
+}
+
+internal fun expansionKey(row: TranslationViewRow): Pair<Int, Long> =
+  row.ayahInfo.ayahId to row.translationSourceId
+
+internal fun encodeTafseerExpansionState(keys: Collection<Pair<Int, Long>>): LongArray =
+  keys.flatMap { listOf(it.first.toLong(), it.second) }.toLongArray()
+
+internal fun decodeTafseerExpansionState(state: LongArray): List<Pair<Int, Long>> =
+  state.toList().chunked(2).mapNotNull {
+    if (it.size == 2) it[0].toInt() to it[1] else null
+  }

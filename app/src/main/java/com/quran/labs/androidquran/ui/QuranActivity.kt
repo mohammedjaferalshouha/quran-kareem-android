@@ -472,7 +472,10 @@ class QuranActivity : AppCompatActivity(),
     if (automaticPage != Constants.NO_PAGE) {
       val intent = Intent(this, PagerActivity::class.java).apply {
         putExtra("page", automaticPage)
-        putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
+        putExtra(
+          PagerActivity.EXTRA_JUMP_TO_TRANSLATION,
+          settings.wasAutomaticLastTextMode()
+        )
         if (automaticSura > 0 && automaticAyah > 0) {
           putExtra(PagerActivity.EXTRA_HIGHLIGHT_SURA, automaticSura)
           putExtra(PagerActivity.EXTRA_HIGHLIGHT_AYAH, automaticAyah)
@@ -551,7 +554,7 @@ class QuranActivity : AppCompatActivity(),
   override fun jumpTo(page: Int) {
     val i = Intent(this, PagerActivity::class.java)
     i.putExtra("page", page)
-    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
+    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, settings.isTextReadingMode)
     startActivity(i)
   }
 
@@ -560,7 +563,7 @@ class QuranActivity : AppCompatActivity(),
     i.putExtra("page", page)
     i.putExtra(PagerActivity.EXTRA_HIGHLIGHT_SURA, sura)
     i.putExtra(PagerActivity.EXTRA_HIGHLIGHT_AYAH, ayah)
-    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
+    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, settings.isTextReadingMode)
     startActivity(i)
   }
 
@@ -570,7 +573,7 @@ class QuranActivity : AppCompatActivity(),
     i.putExtra(PagerActivity.EXTRA_HIGHLIGHT_SURA, sura)
     i.putExtra(PagerActivity.EXTRA_HIGHLIGHT_AYAH, ayah)
     i.putExtra(PagerActivity.EXTRA_CLEAR_HIGHLIGHT_ON_TAP, true)
-    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, true)
+    i.putExtra(PagerActivity.EXTRA_JUMP_TO_TRANSLATION, settings.isTextReadingMode)
     startActivity(i)
   }
 

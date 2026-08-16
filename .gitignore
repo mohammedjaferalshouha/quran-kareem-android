@@ -27,3 +27,14 @@ crashlytics-build.properties
 com_crashlytics_export_strings.xml
 extras
 app/google-services.json
+
+# Local analysis and validation artifacts
+graphify-out/
+**/graphify-out/
+final-tests.log
+final-validation.log
+hs_err_pid*.log
+
+# Installable artifacts belong in release attachments, not source control
+*.apk
+*.aab

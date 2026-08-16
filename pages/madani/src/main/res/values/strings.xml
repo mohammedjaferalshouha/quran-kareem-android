@@ -2,4 +2,6 @@
 <resources>
   <string name="madani_title">Classic Madani Mushaf</string>
   <string name="madani_description">The classic Madani script.</string>
+  <string name="madani_1441_lines_title">Madani Mushaf (1441) - optimized for larger screens</string>
+  <string name="madani_1441_lines_description">The 1441 Madani Mushaf from the King Fahd Quran Printing Complex</string>
 </resources>

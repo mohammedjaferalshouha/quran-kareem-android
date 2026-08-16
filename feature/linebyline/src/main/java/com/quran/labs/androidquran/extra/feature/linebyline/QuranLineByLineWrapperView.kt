@@ -7,8 +7,9 @@ import android.content.Intent
 import android.widget.FrameLayout
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material.MaterialTheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.quran.data.page.provider.di.inject
@@ -20,8 +21,8 @@ import com.quran.labs.androidquran.extra.feature.linebyline.resource.ImageBitmap
 import com.quran.labs.androidquran.extra.feature.linebyline.ui.QuranPageWrapper
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.text.NumberFormat
@@ -30,7 +31,8 @@ import java.util.Locale
 class QuranLineByLineWrapperView(
   context: Context,
   currentPage: Int,
-  private val dualScreenMode: Boolean = false
+  private val dualScreenMode: Boolean = false,
+  private val forcePageFit: Boolean = false
 ) : FrameLayout(context) {
   @Volatile
   private var didRequestFallback = false
@@ -73,7 +75,21 @@ class QuranLineByLineWrapperView(
       setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
       consumeWindowInsets = false
       setContent {
-        val scope = rememberCoroutineScope()
+        val selectionEvents = remember { Channel<SelectionEvent>(Channel.UNLIMITED) }
+        LaunchedEffect(selectionEvents) {
+          for (event in selectionEvents) {
+            when (event) {
+              is SelectionEvent.Start -> quranLineByLinePresenter.startSelection(event.x, event.y)
+              is SelectionEvent.Modify -> quranLineByLinePresenter.modifySelectionRange(
+                event.offsetX,
+                event.offsetY
+              )
+              SelectionEvent.End -> quranLineByLinePresenter.endSelection()
+              is SelectionEvent.AccessibilitySelect ->
+                quranLineByLinePresenter.selectAyahForAccessibility(event.sura, event.ayah)
+            }
+          }
+        }
         val pageInfo = pageFlow.collectAsState(quranLineByLinePresenter.emptyState(), Dispatchers.IO)
 
         MaterialTheme {
@@ -81,6 +97,7 @@ class QuranLineByLineWrapperView(
             pageInfo = pageInfo.value,
             pageContentType = pageProvider.getPageContentType(),
             dualScreenMode = dualScreenMode,
+            forcePageFit = forcePageFit,
             suraHeaderBitmap = imageBitmapUtil.alpha8Image(
               context.applicationContext,
               R.drawable.chapter_hdr
@@ -88,13 +105,25 @@ class QuranLineByLineWrapperView(
             ayahNumberFormatter = NumberFormat.getIntegerInstance(Locale("ar", "EG")),
             onClick = quranLineByLinePresenter::onClick,
             onPagePositioned = quranLineByLinePresenter::onPagePositioned,
-            onSelectionStart = { x, y -> scope.launch { quranLineByLinePresenter.startSelection(x, y) } },
-            onSelectionModified = { offsetX, offsetY -> scope.launch { quranLineByLinePresenter.modifySelectionRange(offsetX, offsetY) } },
-            onSelectionEnd = { scope.launch { quranLineByLinePresenter.endSelection() } }
+            onSelectionStart = { x, y -> selectionEvents.trySend(SelectionEvent.Start(x, y)) },
+            onSelectionModified = { offsetX, offsetY ->
+              selectionEvents.trySend(SelectionEvent.Modify(offsetX, offsetY))
+            },
+            onSelectionEnd = { selectionEvents.trySend(SelectionEvent.End) },
+            onAccessibilityAyahSelected = { sura, ayah ->
+              selectionEvents.trySend(SelectionEvent.AccessibilitySelect(sura, ayah))
+            }
           )
         }
       }
     }
+  }
+
+  private sealed interface SelectionEvent {
+    data class Start(val x: Float, val y: Float) : SelectionEvent
+    data class Modify(val offsetX: Float, val offsetY: Float) : SelectionEvent
+    data object End : SelectionEvent
+    data class AccessibilitySelect(val sura: Int, val ayah: Int) : SelectionEvent
   }
 
   private tailrec fun resolveActivity(context: Context): Activity? {

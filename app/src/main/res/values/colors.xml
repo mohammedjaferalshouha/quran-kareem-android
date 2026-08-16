@@ -26,6 +26,7 @@
   <color name="translation_verse_background_color">#fff2f2f2</color>
   <color name="translation_verse_background_night_color">#ff333333</color>
   <color name="translation_inline_ayah_highlight_color">#ff00838F</color>
+  <color name="quran_text_sura_header">#ff007552</color>
   <color name="translation_inline_ayah_highlight_night_color">#ff34d399</color>
   <color name="translation_translator_color">#ff00838F</color>
   <color name="translation_text_color">#ff444444</color>

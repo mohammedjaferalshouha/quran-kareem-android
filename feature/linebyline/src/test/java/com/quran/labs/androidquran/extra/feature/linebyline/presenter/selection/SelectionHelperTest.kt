@@ -136,6 +136,70 @@ class SelectionHelperTest {
   }
 
   @Test
+  fun `modifySelectionRange uses both left and right boundaries for an exact match`() {
+    val helper = buildHelper(width = 1000)
+    val highlights = listOf(
+      buildHighlight(lineId = 0, left = 0.6f, right = 0.9f, ayah = 9),
+      buildHighlight(lineId = 0, left = 0.1f, right = 0.3f, ayah = 1)
+    )
+
+    helper.startSelection(x = 200f, y = 0f)
+    val result = helper.modifySelectionRange(0f, 0f, highlights)
+
+    assertThat(result).isEqualTo(SuraAyah(1, 1))
+  }
+
+  @Test
+  fun `modifySelectionRange expands the left edge by a limited amount`() {
+    val helper = buildHelper(width = 1080)
+    val highlights = listOf(buildHighlight(lineId = 0, left = 0.2f, right = 0.4f, ayah = 3))
+
+    helper.startSelection(x = 205f, y = 0f)
+    val result = helper.modifySelectionRange(0f, 0f, highlights)
+
+    assertThat(result).isEqualTo(SuraAyah(1, 3))
+  }
+
+  @Test
+  fun `modifySelectionRange expands the right edge by a limited amount`() {
+    val helper = buildHelper(width = 1080)
+    val highlights = listOf(buildHighlight(lineId = 0, left = 0.2f, right = 0.4f, ayah = 4))
+
+    helper.startSelection(x = 440f, y = 0f)
+    val result = helper.modifySelectionRange(0f, 0f, highlights)
+
+    assertThat(result).isEqualTo(SuraAyah(1, 4))
+  }
+
+  @Test
+  fun `modifySelectionRange chooses the nearest ayah between highlights within the maximum distance`() {
+    val helper = buildHelper(width = 1000)
+    val highlights = listOf(
+      buildHighlight(lineId = 0, left = 0.1f, right = 0.2f, ayah = 5),
+      buildHighlight(lineId = 0, left = 0.24f, right = 0.34f, ayah = 6)
+    )
+
+    helper.startSelection(x = 225f, y = 0f)
+    val result = helper.modifySelectionRange(0f, 0f, highlights)
+
+    assertThat(result).isEqualTo(SuraAyah(1, 6))
+  }
+
+  @Test
+  fun `modifySelectionRange returns null in a distant gap between highlights`() {
+    val helper = buildHelper(width = 1000)
+    val highlights = listOf(
+      buildHighlight(lineId = 0, left = 0.1f, right = 0.2f, ayah = 7),
+      buildHighlight(lineId = 0, left = 0.5f, right = 0.6f, ayah = 8)
+    )
+
+    helper.startSelection(x = 350f, y = 0f)
+    val result = helper.modifySelectionRange(0f, 0f, highlights)
+
+    assertThat(result).isNull()
+  }
+
+  @Test
   fun `endSelection clears the selection point so modifySelectionRange returns null`() {
     // Arrange
     val helper = buildHelper()

@@ -5,7 +5,7 @@ import com.quran.data.dao.TranslationsDao
 import com.quran.data.model.QuranText
 import com.quran.data.model.VerseRange
 import com.quran.labs.androidquran.data.QuranDataProvider
-import com.quran.labs.androidquran.database.DatabaseHandler.TextType.Companion.TRANSLATION
+import com.quran.labs.androidquran.database.DatabaseHandler.TextType.Companion.ARABIC
 import com.quran.labs.androidquran.util.QuranFileUtils
 import com.quran.mobile.di.qualifier.ApplicationContext
 import dev.zacsweers.metro.Inject
@@ -18,10 +18,17 @@ class TranslationsDaoImpl @Inject constructor(
 ) : TranslationsDao {
 
   override suspend fun allAyahs(): List<QuranText> {
+    return ayahs(VerseRange(1, 1, 114, 6, -1))
+  }
+
+  override suspend fun ayahs(verseRange: VerseRange): List<QuranText> {
     return withContext(Dispatchers.IO) {
+      if (!quranFileUtils.hasArabicSearchDatabase()) {
+        return@withContext emptyList()
+      }
       val databaseHandler = DatabaseHandler.getDatabaseHandler(
         appContext, QuranDataProvider.QURAN_ARABIC_DATABASE, quranFileUtils)
-      databaseHandler.getVerses(VerseRange(1, 1, 114, 6, -1), TRANSLATION)
+      databaseHandler.getVerses(verseRange, ARABIC)
     }
   }
 }

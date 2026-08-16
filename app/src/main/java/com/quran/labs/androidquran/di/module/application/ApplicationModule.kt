@@ -16,6 +16,9 @@ import com.quran.labs.androidquran.common.audio.cache.QariDownloadInfoSource
 import com.quran.labs.androidquran.data.QuranDisplayData
 import com.quran.labs.androidquran.data.QuranDisplayInterface
 import com.quran.page.common.data.QuranNaming
+import com.quran.page.common.factory.PageViewFactoryProvider
+import com.quran.data.page.provider.madani.Madani1441LinePageProvider
+import com.quran.labs.androidquran.extra.feature.linebyline.QuranLineByLinePageViewFactory
 import com.quran.labs.androidquran.util.AudioFileUtils
 import com.quran.labs.androidquran.util.AudioUtils
 import com.quran.labs.androidquran.util.AudioUtilsInterface
@@ -39,6 +42,23 @@ import java.io.File
 
 @BindingContainer
 object ApplicationModule {
+
+  @Provides
+  fun providePageViewFactoryProvider(quranSettings: QuranSettings): PageViewFactoryProvider {
+    return createPageViewFactoryProvider(quranSettings::isVerticalPageNavigation)
+  }
+
+  internal fun createPageViewFactoryProvider(
+    forcePageFit: () -> Boolean
+  ): PageViewFactoryProvider {
+    return PageViewFactoryProvider { pageType ->
+      if (pageType == Madani1441LinePageProvider.PAGE_TYPE) {
+        QuranLineByLinePageViewFactory(forcePageFit)
+      } else {
+        null
+      }
+    }
+  }
 
   @Provides
   fun provideDisplay(@ApplicationContext appContext: Context): Display {

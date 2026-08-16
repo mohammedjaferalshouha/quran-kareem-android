@@ -43,6 +43,8 @@ class PageSelectAdapter(val inflater: LayoutInflater,
     notifyDataSetChanged()
   }
 
+  fun positionOf(pageType: String): Int = items.indexOfFirst { it.pageType == pageType }
+
   override fun getCount() = items.size
 
   override fun isViewFromObject(view: View, obj: Any): Boolean {

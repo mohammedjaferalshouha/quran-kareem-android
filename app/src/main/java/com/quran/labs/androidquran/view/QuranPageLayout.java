@@ -240,7 +240,10 @@ public abstract class QuranPageLayout extends QuranPageWrapperLayout
       lineColor = Color.argb(nightModeTextBrightness, 255, 255, 255);
     }
 
-    if ((pageNumber + skippedPages) % 2 == 0) {
+    if (!shouldDrawBookBorders(quranSettings)) {
+      leftBorder = BorderMode.HIDDEN;
+      rightBorder = BorderMode.HIDDEN;
+    } else if ((pageNumber + skippedPages) % 2 == 0) {
       leftBorder = nightMode ? BorderMode.DARK : BorderMode.LIGHT;
       rightBorder = BorderMode.HIDDEN;
     } else {
@@ -253,6 +256,10 @@ public abstract class QuranPageLayout extends QuranPageWrapperLayout
     }
 
     updateBackground(nightMode, quranSettings);
+  }
+
+  protected boolean shouldDrawBookBorders(@NonNull QuranSettings quranSettings) {
+    return true;
   }
 
   protected void updateBackground(boolean nightMode, QuranSettings quranSettings) {

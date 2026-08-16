@@ -39,7 +39,12 @@ class BookmarkImportExportModel @Inject internal constructor(
 ) {
   fun readBookmarks(source: BufferedSource): Single<BookmarkData> {
     return Single.defer {
-      Single.just(jsonModel.fromJson(source))
+      source.use {
+        if (it.request(MAX_IMPORT_BYTES + 1L)) {
+          throw IOException("Bookmark backup is too large.")
+        }
+        Single.just(jsonModel.fromJson(it))
+      }
     }
       .subscribeOn(Schedulers.io())
   }
@@ -134,6 +139,7 @@ class BookmarkImportExportModel @Inject internal constructor(
   }
 
   companion object {
+    private const val MAX_IMPORT_BYTES = 10L * 1024L * 1024L
     private const val FILE_NAME = "quran_android.backup"
   }
 }

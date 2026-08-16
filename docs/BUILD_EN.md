@@ -5,7 +5,7 @@
 - An Android development host.
 - Android SDK.
 - Android Studio or command-line Gradle.
-- JDK 17 or a newer compatible release.
+- JDK 21.
 
 ## Debug build
 

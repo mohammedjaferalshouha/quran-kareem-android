@@ -16,6 +16,8 @@ public class QuranTranslationPageLayout extends QuranPageLayout {
   public QuranTranslationPageLayout(Context context) {
     super(context);
     isFullWidth = true;
+    setClipChildren(true);
+    setClipToPadding(true);
     initialize();
   }
 
@@ -54,5 +56,14 @@ public class QuranTranslationPageLayout extends QuranPageLayout {
 
   public TranslationView getTranslationView() {
     return translationView;
+  }
+
+  @Override
+  protected boolean shouldDrawBookBorders(@NonNull QuranSettings quranSettings) {
+    return !quranSettings.isVerticalPageNavigation();
+  }
+
+  public boolean zoomBy(float delta, @NonNull QuranSettings quranSettings) {
+    return translationView.zoomBy(delta, quranSettings);
   }
 }

@@ -18,4 +18,6 @@ class QuranCustomImagePageLayout(
   }
 
   override fun shouldWrapWithScrollView(): Boolean = false
+
+  fun getWrappedView(): View = wrappedView
 }

@@ -23,12 +23,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.quran.labs.androidquran.common.ui.core.QuranIcons
 import com.quran.labs.androidquran.common.ui.core.QuranTheme
 import com.quran.mobile.feature.audiobar.state.AudioBarUiEvent
+import com.quran.mobile.feature.audiobar.R
 
 @Composable
 internal fun RecitationListeningAudioBar(
@@ -38,7 +42,7 @@ internal fun RecitationListeningAudioBar(
 ) {
   RecitationAudioBar(eventSink, true, modifier = modifier) {
     IconButton(onClick = { listeningEventSink(AudioBarUiEvent.RecitationListeningEvent.HideVerses) }) {
-      Icon(QuranIcons.MenuBook, contentDescription = "")
+      Icon(QuranIcons.MenuBook, contentDescription = stringResource(R.string.recitation_hide_verses))
     }
   }
 }
@@ -51,11 +55,11 @@ internal fun RecitationPlayingAudioBar(
 ) {
   RecitationAudioBar(eventSink, false, modifier = modifier) {
     IconButton(onClick = { playingEventSink(AudioBarUiEvent.RecitationPlayingEvent.EndSession) }) {
-      Icon(QuranIcons.Close, contentDescription = "")
+      Icon(QuranIcons.Close, contentDescription = stringResource(R.string.recitation_end))
     }
 
     IconButton(onClick = { playingEventSink(AudioBarUiEvent.RecitationPlayingEvent.PauseRecitation) }) {
-      Icon(QuranIcons.Pause, contentDescription = "")
+      Icon(QuranIcons.Pause, contentDescription = stringResource(R.string.audio_pause))
     }
   }
 }
@@ -68,11 +72,11 @@ internal fun RecitationStoppedAudioBar(
 ) {
   RecitationAudioBar(eventSink, false, modifier = modifier) {
     IconButton(onClick = { stoppedEventSink(AudioBarUiEvent.RecitationStoppedEvent.EndSession) }) {
-      Icon(QuranIcons.Close, contentDescription = "")
+      Icon(QuranIcons.Close, contentDescription = stringResource(R.string.recitation_end))
     }
 
     IconButton(onClick = { stoppedEventSink(AudioBarUiEvent.RecitationStoppedEvent.PlayRecitation) }) {
-      Icon(QuranIcons.PlayArrow, contentDescription = "")
+      Icon(QuranIcons.PlayArrow, contentDescription = stringResource(R.string.audio_play))
     }
   }
 }
@@ -84,6 +88,7 @@ internal fun RecitationAudioBar(
   modifier: Modifier = Modifier,
   actions: @Composable () -> Unit
 ) {
+  val recordDescription = stringResource(R.string.audio_record)
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = modifier.height(IntrinsicSize.Min)
@@ -105,7 +110,7 @@ internal fun RecitationAudioBar(
     )
 
     IconButton(onClick = { eventSink(AudioBarUiEvent.CommonRecordingEvent.Transcript) }) {
-      Icon(QuranIcons.Chat, contentDescription = "")
+      Icon(QuranIcons.Chat, contentDescription = stringResource(R.string.recitation_transcript))
     }
 
     Divider(
@@ -120,6 +125,7 @@ internal fun RecitationAudioBar(
         .size(40.dp)
         .clip(CircleShape)
         .background(color = Color.Transparent)
+        .semantics { contentDescription = recordDescription }
         .combinedClickable(
           role = Role.Button,
           onClick = { eventSink(AudioBarUiEvent.CommonRecordingEvent.Recitation) },
@@ -132,7 +138,7 @@ internal fun RecitationAudioBar(
       } else {
         LocalContentColor.current
       }
-      Icon(QuranIcons.Mic, contentDescription = "", tint = tint)
+      Icon(QuranIcons.Mic, contentDescription = null, tint = tint)
     }
   }
 }

@@ -107,12 +107,13 @@
   <string name="prefs_highlight_bookmarks_title">تعليم المرجعيات</string>
   <string name="prefs_highlight_bookmarks_summary">علم الآيات التي وضعت في المرجعيات</string>
   <string name="prefs_translation_text_title">خط التفسير والترجمة</string>
+  <string name="prefs_ayah_text_title">حجم نص الآيات</string>
   <string name="prefs_translations">التفسير والترجمة</string>
   <string name="prefs_translations_summary">حمّل واختر التفاسير والتراجم</string>
   <string name="prefs_ayah_before_translation_title">عرض اﻵية مع التفسير</string>
   <string name="prefs_ayah_before_translation_summary">اختر لعرض الآية مع التفسير</string>
-  <string name="prefs_use_dyslexic_font_title">Dyslexia friendly font</string>
-  <string name="prefs_use_dyslexic_font_summary">Display translations in dyslexia friendly font</string>
+  <string name="prefs_use_dyslexic_font_title">خط مناسب لعسر القراءة</string>
+  <string name="prefs_use_dyslexic_font_summary">عرض التفاسير والتراجم بخط مناسب لعسر القراءة</string>
   <string name="prefs_category_download">خيارات التحميل</string>
   <string name="prefs_streaming_title">استماع عبر اﻻنترنت</string>
   <string name="prefs_streaming_summary">" سيتم تشغيل الصوت عبر اﻻنترنت (لن يتم تنزيل الملفات على الجهاز)"</string>

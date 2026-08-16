@@ -22,6 +22,9 @@ class TranslationModelImpl @Inject internal constructor(
 ) : TranslationModel {
 
   override suspend fun getArabicFromDatabase(verses: VerseRange): List<QuranText> {
+    if (!quranFileUtils.hasArabicSearchDatabase()) {
+      return emptyList()
+    }
     return getVersesFromDatabase(
         verses,
         QuranDataProvider.QURAN_ARABIC_DATABASE,

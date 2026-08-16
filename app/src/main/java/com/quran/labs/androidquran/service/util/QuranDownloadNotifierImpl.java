@@ -1,5 +1,6 @@
 package com.quran.labs.androidquran.service.util;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -287,6 +288,7 @@ public class QuranDownloadNotifierImpl implements QuranDownloadNotifier {
         isOnGoing, 0, 0, false, shouldForeground);
   }
 
+  @SuppressLint("NotificationPermission")
   private void showNotification(String titleString,
       String statusString, int notificationId, boolean isOnGoing,
       int maximum, int progress, boolean isIndeterminate, boolean shouldForeground) {
@@ -321,7 +323,8 @@ public class QuranDownloadNotifierImpl implements QuranDownloadNotifier {
       if (shouldForeground && !isForeground) {
         service.startForeground(notificationId, builder.build());
         isForeground = true;
-       } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N || notificationManager.areNotificationsEnabled()) {
+       } else if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.N || notificationManager.areNotificationsEnabled())
+          && PermissionUtil.havePostNotificationPermission(appContext)) {
         notificationManager.notify(notificationId, builder.build());
       }
     } catch (SecurityException | IllegalStateException se) {

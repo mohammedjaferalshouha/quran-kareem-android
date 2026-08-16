@@ -26,8 +26,10 @@ fun AyahMarker(
 
   Canvas(modifier = Modifier.fillMaxSize()) {
     val width = this.size.width
+    val digitCount = text.count { it.isDigit() }.coerceAtLeast(1)
+    val metrics = calculateAyahMarkerMetrics(width, digitCount, textWidthRatio)
     val strokeWidth = 0.003f * width
-    val markerDimen = (0.025f * 2 * width).toInt()
+    val markerDimen = metrics.markerDiameter
     val radius = markerDimen / 2f
 
     val lastLineIndex = 14
@@ -45,7 +47,7 @@ fun AyahMarker(
       style = Stroke(width = strokeWidth)
     )
 
-    val fontSize = (width * textWidthRatio).toSp()
+    val fontSize = metrics.fontSize.toSp()
     val measurement =
       textMeasurer.measure(text, TextStyle.Default.copy(color = textColor, fontSize = fontSize))
 
@@ -58,3 +60,30 @@ fun AyahMarker(
     )
   }
 }
+
+internal data class AyahMarkerMetrics(
+  val markerDiameter: Int,
+  val fontSize: Float
+)
+
+internal fun calculateAyahMarkerMetrics(
+  width: Float,
+  digitCount: Int,
+  requestedTextWidthRatio: Float
+): AyahMarkerMetrics {
+  val textWidthRatio = when (digitCount.coerceIn(1, 3)) {
+    1 -> ONE_DIGIT_TEXT_WIDTH_RATIO
+    2 -> TWO_DIGIT_TEXT_WIDTH_RATIO
+    else -> THREE_DIGIT_TEXT_WIDTH_RATIO
+  }
+
+  return AyahMarkerMetrics(
+    markerDiameter = (width * MARKER_DIAMETER_RATIO).toInt().coerceAtLeast(1),
+    fontSize = width * maxOf(requestedTextWidthRatio, textWidthRatio)
+  )
+}
+
+private const val MARKER_DIAMETER_RATIO = 0.06f
+private const val ONE_DIGIT_TEXT_WIDTH_RATIO = 0.044f
+private const val TWO_DIGIT_TEXT_WIDTH_RATIO = 0.040f
+private const val THREE_DIGIT_TEXT_WIDTH_RATIO = 0.034f

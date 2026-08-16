@@ -2,6 +2,7 @@ package com.quran.labs.feature.autoquran.service
 
 import android.os.Bundle
 import android.os.Handler
+import android.os.Process
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -147,7 +148,12 @@ class QuranBrowsableAudioPlaybackService : MediaLibraryService() {
   }
 
   override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? =
-    mediaSession
+    if (isTrustedMediaController(Process.myUid(), controllerInfo.uid, controllerInfo.isTrusted)) {
+      mediaSession
+    } else {
+      Timber.w("Rejecting untrusted media controller")
+      null
+    }
 
   private inner class PlayerEventListener : Player.Listener {
     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -329,3 +335,9 @@ class QuranBrowsableAudioPlaybackService : MediaLibraryService() {
   }
 
 }
+
+internal fun isTrustedMediaController(
+  applicationUid: Int,
+  controllerUid: Int,
+  controllerIsTrusted: Boolean
+): Boolean = controllerUid == applicationUid || controllerIsTrusted

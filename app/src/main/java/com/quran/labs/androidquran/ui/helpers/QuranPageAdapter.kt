@@ -19,6 +19,7 @@ class QuranPageAdapter(
   private val isSplitScreen: Boolean,
   private val pageViewFactory: PageViewFactory? = null
 ) : FragmentStatePagerAdapter(fm, if (isDualPages) "dualPages" else "singlePage") {
+  private val pendingVerticalTextEntries = mutableMapOf<Int, Boolean>()
   private var pageMode: PageMode = makePageMode()
   private val totalPages: Int = quranInfo.numberOfPagesConsideringSkipped
   private val totalPagesDual: Int = totalPages / 2 + (totalPages % 2)
@@ -41,7 +42,7 @@ class QuranPageAdapter(
 
   private fun makePageMode(): PageMode {
     return if (isDualPages) {
-      if (isShowingTranslation && isSplitScreen) {
+      if (isSplitScreen) {
         PageMode.DualScreenMode.Mix
       } else if (isShowingTranslation) {
         PageMode.DualScreenMode.Translation
@@ -86,12 +87,17 @@ class QuranPageAdapter(
   override fun getItem(position: Int): Fragment {
     val page = quranInfo.getPageFromPosition(position, isDualPagesVisible)
     Timber.d("getting page: %d, from position %d", page, position)
-    return pageViewFactory?.providePage(page, pageMode) ?: when {
+    val fragment = pageViewFactory?.providePage(page, pageMode) ?: when {
       isDualPages -> {
         TabletFragment.newInstance(
           page,
-          if (isShowingTranslation) TabletFragment.Mode.TRANSLATION else TabletFragment.Mode.ARABIC,
-          isSplitScreen
+          if (isSplitScreen || isShowingTranslation) {
+            TabletFragment.Mode.TRANSLATION
+          } else {
+            TabletFragment.Mode.ARABIC
+          },
+          isSplitScreen,
+          splitReaderIsText = isShowingTranslation
         )
       }
       isShowingTranslation -> {
@@ -100,6 +106,23 @@ class QuranPageAdapter(
       else -> {
         QuranPageFragment.newInstance(page)
       }
+    }
+    if (fragment is TranslationFragment) {
+      pendingVerticalTextEntries.remove(position)?.let(fragment::prepareVerticalPageEntry)
+    } else if (fragment is TabletFragment) {
+      pendingVerticalTextEntries.remove(position)?.let(fragment::prepareVerticalPageEntry)
+    }
+    return fragment
+  }
+
+  fun prepareVerticalTextPageEntry(position: Int, start: Boolean) {
+    val fragment = getFragmentIfExists(position)
+    if (fragment is TranslationFragment) {
+      fragment.prepareVerticalPageEntry(start)
+    } else if (fragment is TabletFragment) {
+      fragment.prepareVerticalPageEntry(start)
+    } else {
+      pendingVerticalTextEntries[position] = start
     }
   }
 
@@ -119,5 +142,5 @@ class QuranPageAdapter(
   }
 
   private val isDualPagesVisible: Boolean
-    get() = isDualPages && !(isSplitScreen && isShowingTranslation)
+    get() = isDualPages && !isSplitScreen
 }

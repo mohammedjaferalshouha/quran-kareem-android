@@ -52,7 +52,7 @@ private fun RepeatableButtonPreview() {
   QuranTheme {
     RepeatableButton(
       icon = QuranIcons.Repeat,
-      contentDescription = "",
+      contentDescription = "Repeat",
       values = listOf(0, 1, 2, 3, -1),
       value = 1,
       defaultValue = 0,

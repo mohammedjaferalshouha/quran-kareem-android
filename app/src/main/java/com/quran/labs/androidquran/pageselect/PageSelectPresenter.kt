@@ -33,7 +33,7 @@ constructor(
       File(outputPath, ".nomedia").createNewFile()
     }
 
-    val data = pageTypes.map {
+    val data = pageTypes.toSortedMap(compareBy<String> { it != DEFAULT_PAGE_TYPE }.thenBy { it }).map {
       val provider = it.value
       val previewImage = File(outputPath, "${it.key}.png")
       val downloadedImage = if (previewImage.exists()) {
@@ -76,5 +76,9 @@ constructor(
       compositeDisposable.clear()
       downloadingSet.clear()
     }
+  }
+
+  private companion object {
+    const val DEFAULT_PAGE_TYPE = "madani_1441_lines"
   }
 }
