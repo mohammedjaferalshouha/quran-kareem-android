@@ -1,7 +1,6 @@
 package com.quran.labs.androidquran.ui
 
 import android.Manifest
-import android.app.ProgressDialog
 import android.app.SearchManager
 import android.content.ComponentName
 import android.content.DialogInterface
@@ -24,6 +23,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
@@ -188,7 +190,7 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
   private var promptDialog: AlertDialog? = null
   private var isDualPages = false
   private var promptedForExtraDownload = false
-  private var progressDialog: ProgressDialog? = null
+  private var progressDialog: AlertDialog? = null
   private var isFoldableDeviceOpenAndVertical = false
 
   private var bookmarksMenuItem: MenuItem? = null
@@ -853,13 +855,11 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
 
   private fun onAudioPlaybackAyahChanged(suraAyah: SuraAyah?) {
     if (suraAyah != null) {
+      val page = quranInfo.getPageFromSuraAyah(suraAyah.sura, suraAyah.ayah)
       // continue to snap back to the page when the playback ayah changes
       ensurePage(suraAyah.sura, suraAyah.ayah)
-      updateActionBarTitle(
-        quranInfo.getPageFromSuraAyah(suraAyah.sura, suraAyah.ayah),
-        suraAyah.sura,
-        suraAyah.ayah
-      )
+      rememberReadingPosition(page, suraAyah.sura, suraAyah.ayah, showingTranslation)
+      updateActionBarTitle(page, suraAyah.sura, suraAyah.ayah)
     }
   }
 
@@ -1424,7 +1424,8 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
       return true
     } else if (itemId == R.id.jump) {
       val fm = supportFragmentManager
-      val jumpDialog = JumpFragment()
+      val anchor = resolveReadingAnchor(quranInfo, currentPage, lastVisibleReadingAyah)
+      val jumpDialog = JumpFragment.newInstance(currentPage, anchor.sura, anchor.ayah)
       jumpDialog.show(fm, JumpFragment.TAG)
       return true
     }
@@ -1583,6 +1584,12 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
 
   private fun applyTranslationSelection(selectedItems: Set<String>) {
     quranSettings.activeTranslations = selectedItems
+    val showFullPageTafsir = selectedItems.isNotEmpty()
+    quranSettings.setShowingFullPageTranslation(showFullPageTafsir)
+    if (showFullPageTafsir && !showingTranslation && !isSplitScreen) {
+      switchToTranslation()
+      return
+    }
     val pos = viewPager.currentItem - 1
     for (count in 0..2) {
       if (pos + count < 0) {
@@ -2241,11 +2248,26 @@ class PagerActivity : AppCompatActivity(), AudioBarListener, OnBookmarkTagsUpdat
 
   private fun showProgressDialog() {
     if (progressDialog == null) {
-      progressDialog = ProgressDialog(this).apply {
-        isIndeterminate = true
-        setMessage(getString(com.quran.mobile.common.ui.core.R.string.loading))
-        show()
+      val density = resources.displayMetrics.density
+      val padding = (20 * density).toInt()
+      val spacing = (16 * density).toInt()
+      val container = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(padding, padding, padding, padding)
+        addView(ProgressBar(this@PagerActivity).apply {
+          isIndeterminate = true
+        })
+        addView(TextView(this@PagerActivity).apply {
+          text = getString(com.quran.mobile.common.ui.core.R.string.loading)
+          textSize = 16f
+          setPaddingRelative(spacing, 0, 0, 0)
+        })
       }
+      progressDialog = AlertDialog.Builder(this)
+        .setView(container)
+        .setCancelable(false)
+        .show()
     }
   }
 

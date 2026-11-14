@@ -43,10 +43,14 @@
         android:contentDescription="@string/next"
         android:padding="12dp"
         />
-    <Space
+    <Button
+        android:id="@+id/manage_translations_button"
+        style="?android:attr/borderlessButtonStyle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:text="@string/more_translations"
+        android:textColor="@color/accent_color"
         />
     <ImageButton
         android:id="@+id/previous_ayah"

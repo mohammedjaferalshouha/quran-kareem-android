@@ -1,15 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
   <string name="app_name">القرآن الكريم</string>
-  <string name="downloadPrompt_title">حمل الملفات المطلوبه؟</string>
-  <string name="downloadPrompt"> لكي يعمل التطبيق بنجاح تحتاج لتحميل بعض الملفات الان. إن لم يتم التحميل الان قد لا يعمل التطبيق بشكل صحيح و ستحتاج للاتصال بالإنترنت للقراءة. هل تود التحميل الان؟</string>
-  <string name="downloadImportantPrompt">هناك تحديث هام صغير على ملفات الصور على هاتفكم. هل تود  تحميل الملف حالا؟</string>
+  <string name="downloadPrompt_title">تحميل الملفات المطلوبة؟</string>
+  <string name="downloadPrompt">لكي يعمل التطبيق بنجاح تحتاج إلى تحميل بعض الملفات الآن. إن لم يتم التحميل الآن قد لا يعمل التطبيق بشكل صحيح، وستحتاج إلى الاتصال بالإنترنت للقراءة، أو يمكنك البدء بوضع النص مباشرة. هل تود التحميل الآن؟</string>
+  <string name="downloadImportantPrompt">هناك تحديث مهم صغير لملفات الصور على هاتفكم. هل تود تحميل الملف حالًا؟</string>
   <string name="downloadPrompt_ok">نعم</string>
   <string name="downloadPrompt_no">لا</string>
-  <string name="downloading_message">يرجى الإنتظار حتى نهاية التحميل</string>
+  <string name="downloading_message">يرجى الانتظار حتى نهاية التحميل</string>
   <string name="extracting_title">تجهيز…</string>
   <string name="menu_about">عنا</string>
-  <string name="menu_other_apps">تطبيقات أخرى‎</string>
+  <string name="menu_other_apps">إصدارات المشروع</string>
   <string name="menu_settings">الإعدادات</string>
   <string name="menu_jump_last_page">متابعة القراءة</string>
   <string name="continue_reading_ayah">متابعة القراءة: سورة %1$s، الآية %2$d</string>
@@ -40,22 +40,21 @@
 
   <string name="help_title">الأسئلة المتداولة</string>
   <string name="help">
-        &lt;b&gt;كيف يتمّ تشغيل الصّوت؟&lt;/b&gt;
+        &lt;b&gt;كيف يتم تشغيل الصوت؟&lt;/b&gt;
         &lt;br/&gt;
-        افتح صفحة القرآن ، انقر على الصفحة مرّةً واحدة. في أسفل الصّفحة ستجد زر تشغيل الصّوت و اسم القارئ الذي تودّ تحميله. لاختيار القارئ انقر على اسم القارئ الموجود لتظهر لك باقي قائمة القراء. ولتحميل الصّوت اضغط على زر التّشغيل للتّحميل وللاستماع للصّفحة التي أنت عليها أو لتحميل السّورة
+        افتح صفحة القرآن وانقر على الشاشة مرة واحدة. ستجد في الأسفل شريط الصوت، ويمكنك الضغط على اسم القارئ لاختيار قارئ آخر أو الضغط على زر التشغيل للاستماع أو التحميل، كما يستمر الصوت عند عودتك للشاشة الرئيسية مع إمكانية التحكم من الإشعارات.
         &lt;br/&gt;
-        &lt;br/&gt;&lt;b&gt;كيف أحصل على التّرجمة؟&lt;/b&gt;
-        &lt;br/&gt;افتح صفحةً من المصحف، انقر على الشّاشة مرّةً واحدةً، سيظهر لك شريطٌ بالأعلى ، ستجد أيقونةً بالأعلى على شكل كرةٍ أرضيّةٍ (وقد تجد أيقونة التّرجمة في بعض الأجهزة مدرجةً تحت زر القائمة الموجود بالشّريط العُلوي الذي على شكل ثلاث نقاطٍ بالطّول )، بالنّقر عليها ستذهب بك لصفحةٍ يمكنك من خلالها اختيار وتحميل التّرجمة التي تودّ تحميلها وبعد التّحميل عُد مرّةً أخرى وانقر على أيقونة الكرة الأرضيّة لترى التّرجمة التي تمّ تحميلها.
+        &lt;br/&gt;&lt;b&gt;كيف أستعرض التفسير والترجمة؟&lt;/b&gt;
+        &lt;br/&gt;يمكنك الضغط المطوّل على أي آية لعرض شريط الأدوات وفتح التفسير السريع في الأسفل، مع زر لإدارة وتحميل التفاسير. كما يمكنك اختيار التفاسير من القائمة لعرض الصفحة كاملةً بالآيات وتفسيرها معًا، أو تفعيل وضع الشاشة المقسمة في الأجهزة اللوحية من الإعدادات.
         &lt;br/&gt;
-        &lt;br/&gt;&lt;b&gt;كيف يتمّ إضافة صفحةٍ للمرجعيّات؟&lt;/b&gt;
-        &lt;br/&gt;انقر على الصفحة التي تودّ إضافتها للمرجعيّات، سيظهر لك شريطٌ بالأعلى وعلى يمين الشّريط ستجد أيقونةً على شكل نجمةٍ بالنّقر عليها سيتمّ تغيير شكلها إلى شكلٍ مُصمتٍ وبالتّالي يكون تمّ حفظ الصّفحة للمرجعيّات. ولحذف تلك الصّفحة من المرجعيّات قم مرّةً أخرى بالذَّهاب لتلك الصّفحة وانقر مرّةً أخرى على النّجمة لإلغاء كونها من المرجعيّات
+        &lt;br/&gt;&lt;b&gt;كيف أبدّل بين وضع الصفحات ووضع النص والتنقل الرأسي؟&lt;/b&gt;
+        &lt;br/&gt;من الشريط العلوي داخل القارئ يمكنك التبديل بين وضع الصفحات المصوّرة ووضع النص المرن، كما يمكنك تفعيل خيار «التنقل الرأسي بين الصفحات» من القائمة لقراءة متصلة بالتمرير العمودي.
         &lt;br/&gt;
-        &lt;br/&gt;&lt;b&gt;كيف يُمْكنني تكبير الخط؟&lt;/b&gt;
-        &lt;br/&gt; للصّفحات العربي يُمكنك وضع جهازك على الوضع الأُفقي، فيُمكنك من خلال ذلك الحصول على حجمٍ أكبر للخط. وللتّرجمة اذهب للإعدادات و اختر حجم التّرجمة.
+        &lt;br/&gt;&lt;b&gt;كيف يمكنني تكبير الصفحة أو حجم الخط؟&lt;/b&gt;
+        &lt;br/&gt;يمكنك التكبير والتصغير باستخدام حركة الإصبعين على الشاشة (سواءً في الصفحات المصوّرة أو وضع النص أو التفسير أو عرض السطر بالسطر)، أو بالنقر المزدوج على الصفحة، أو عبر أزرار التكبير والتصغير وضبط حجم الخط في الإعدادات.
         &lt;br/&gt;
-        &lt;br/&gt;&lt;b&gt;كيف يُمكنني إرسال آيةٍ؟&lt;/b&gt;
-        &lt;br/&gt;
-         أثناء قراءتك اضغط على الآية ضغطةً طويلةً ستظهر لك قائمةٌ بها عِدّة اختياراتٍ منها الإرسال ومنها تسجيل الآية في المرجعيّات، نسخ الآية، و تفسير الآية.
+        &lt;br/&gt;&lt;b&gt;كيف أحفظ صفحة أو آية أو أستخدم الانتقال السريع والبحث؟&lt;/b&gt;
+        &lt;br/&gt;اضغط على أيقونة المرجعية في الشريط العلوي لحفظ الصفحة أو نقل علامة التوقف، أو اضغط مطولًا على آية لحفظها أو نسخها أو مشاركتها. كما يمكنك استخدام البحث للعثور على السور والآيات، أو «انتقال سريع» للانتقال مباشرة برقم الصفحة أو الجزء أو السورة والآية.
     </string>
 
   <string name="search_hint">بحث في القرآن</string>
@@ -67,7 +66,7 @@
   <!-- Shown above search results when we receive a search request. -->
   <plurals name="search_results">
     <item quantity="zero">لا توجد نتائج في البحث عن \"%1$s\"</item>
-    <item quantity="one">نتيجة واحده في البحث عن \"%1$s\"</item>
+    <item quantity="one">نتيجة واحدة في البحث عن \"%1$s\"</item>
     <item quantity="two">نتيجتان في البحث عن \"%1$s\"</item>
     <item quantity="few">%2$d نتائج في البحث عن \"%1$s\"</item>
     <item quantity="many">%2$d نتيجة في البحث عن \"%1$s\"</item>
@@ -75,10 +74,10 @@
   </plurals>
 
   <!-- Search messages -->
-  <string name="found_in_sura">  سورة (%1$d) %2$s: %3$d (صفحة %4$d)</string>
-  <string name="no_results">لا توجد نتائج ل \"%s\"</string>
-  <string name="no_arabic_search_available">لتفعيل البحث بالعربية يجب تحميل قاعدة البيانات.. هل ترغب في ذلك ؟</string>
-  <string name="get_arabic_search_db">حمل قاعدة البيانات</string>
+  <string name="found_in_sura">سورة (%1$d) %2$s: %3$d (صفحة %4$d)</string>
+  <string name="no_results">لا توجد نتائج لـ \"%s\"</string>
+  <string name="no_arabic_search_available">لتفعيل البحث بالعربية يجب تحميل قاعدة البيانات.. هل ترغب في ذلك؟</string>
+  <string name="get_arabic_search_db">حمّل قاعدة البيانات</string>
 
   <!-- Quran Preference Activity -->
   <string name="appearance">المظهر</string>
@@ -115,8 +114,8 @@
   <string name="prefs_use_dyslexic_font_title">خط مناسب لعسر القراءة</string>
   <string name="prefs_use_dyslexic_font_summary">عرض التفاسير والتراجم بخط مناسب لعسر القراءة</string>
   <string name="prefs_category_download">خيارات التحميل</string>
-  <string name="prefs_streaming_title">استماع عبر اﻻنترنت</string>
-  <string name="prefs_streaming_summary">" سيتم تشغيل الصوت عبر اﻻنترنت (لن يتم تنزيل الملفات على الجهاز)"</string>
+  <string name="prefs_streaming_title">الاستماع عبر الإنترنت</string>
+  <string name="prefs_streaming_summary">سيتم تشغيل الصوت عبر الإنترنت (لن يتم تنزيل الملفات على الجهاز)</string>
   <string name="prefs_download_amount_title">كم التحميل</string>
   <string name="prefs_download_amount_summary">كم التحميل للتلاوات غير المتصلة</string>
   <string name="prefs_audio_manager_summary">تحميل وإدارة الملفات الصوتية</string>
@@ -127,8 +126,8 @@
   <string name="prefs_app_size">مساحة التطبيق</string>
   <string name="prefs_calculating_app_size">جاري حساب مساحة التطبيق</string>
   <string name="prefs_copying_app_files">جاري نسخ ملفات التطبيق</string>
-  <string name="prefs_err_moving_app_files">حدث خطأ اثناء نقل ملفات التطبيق</string>
-  <string name="prefs_no_enough_space_to_move_files">لا يوجد مساحة كافية لنقل ملفات التطبيق</string>
+  <string name="prefs_err_moving_app_files">حدث خطأ أثناء نقل ملفات التطبيق</string>
+  <string name="prefs_no_enough_space_to_move_files">لا توجد مساحة كافية لنقل ملفات التطبيق</string>
   <string name="prefs_dual_page_mode_title">وضع الصفحتين المتجاورتين</string>
   <string name="prefs_dual_page_mode_enabled">عرض صفحتين متجاورتين في الوضع الأفقي</string>
   <string name="prefs_dual_page_mode_disabled">عرض صفحة واحدة في الوضع الأفقي</string>
@@ -180,20 +179,19 @@
   <string name="download_processing">جاري تجهيز الملفات…</string>
   <string name="download_error_general">لم يتم تحميل الملفات</string>
   <string name="download_error_disk">لا توجد مساحة كافية للتخزين</string>
-  <string name="download_error_network">لا يمكن اﻻتصال بالانترنت</string>
+  <string name="download_error_network">لا يمكن الاتصال بالإنترنت</string>
   <string name="download_error_perms">الصلاحيات غير كافية لتحميل الملفات</string>
   <string name="download_error_invalid_download">الملفات المحملة تالفة</string>
   <string name="download_error_invalid_download_retry">هناك ملف تالف، جاري إعادة التحميل</string>
-  <string name="download_error_network_retry">لا يمكن اﻻتصال بالانترنت، جاري إعادة المحاولة…</string>
+  <string name="download_error_network_retry">لا يمكن الاتصال بالإنترنت، جاري إعادة المحاولة…</string>
   <string name="notification_download_canceled">تم إلغاء التحميل</string>
-  <string name="sdcard_error">لم يتم العثور على بطاقه الذاكرة الرقمية. أعد وضعها و حاول مرة أخرى.</string>
+  <string name="sdcard_error">لم يتم العثور على بطاقة الذاكرة الرقمية. أعد وضعها وحاول مرة أخرى.</string>
 
   <!-- downloading dialogs -->
-  <string name="process_progress">جاري اﻹعداد %1$d / %2$d</string>
+  <string name="process_progress">جاري الإعداد %1$d / %2$d</string>
   <string name="download_retry">أعد المحاولة</string>
   <string name="download_cancel">إلغاء</string>
-  <string name="download_extra_data">لدعم الترجمة و المشاركة يجب تحميل بعض
-       الملفات .. حمل الأن؟</string>
+  <string name="download_extra_data">لدعم التفسير والترجمة والمشاركة يجب تحميل بعض الملفات.. هل تريد التحميل الآن؟</string>
   <!-- translation database stuff -->
   <string name="remove_dlg_title">امسح التفسير/الترجمة؟</string>
   <string name="remove_dlg_msg">هل ترغب في حذف %1$s؟</string>
@@ -203,7 +201,8 @@
   <string name="get_translations">حمّل التفسير أو الترجمة</string>
 
   <!-- help -->
-  <string name="email_us">إذا لم تجد إجابة سؤالكم بالأعلى فيمكنكم مراسلتنا على هذا البريد quranandroid@gmail.com للدعم. ونحيط بكم علما أنه تصلنا كثير من الأسئلة، ولهذا قد لا نرد على جميع الرسائل.‎</string>
+  <string name="email_us">إذا لم تجد إجابة سؤالك بالأعلى، يمكنك زيارة مستودع المشروع مفتوح المصدر والإبلاغ عن المشكلات أو الاقتراحات عبر الرابط:
+        https://github.com/mohammedjaferalshouha/quran-kareem-android/issues</string>
 
   <!-- sura metainfo -->
   <string name="makki">مكية</string>
@@ -257,17 +256,17 @@
   <string name="stop">إيقاف</string>
   <string name="playback_speed">سرعة التشغيل:</string>
 
-  <string name="downloadTabletPrompt">تم تحسين الصور الخاصه بالتابلت. هل تود تحميلها الان؟</string>
+  <string name="downloadTabletPrompt">تم تحسين الصور الخاصة بالأجهزة اللوحية. هل تود تحميلها الآن؟</string>
   <string name="menu_sort_group_by_tags">رتب حسب التصنيفات</string>
   <string name="about_description">هذا التطبيق مجاني. لا تنسونا من صالح دعائكم.</string>
   <string name="about_data_sources">مصادر المعلومات</string>
   <string name="about_images">الصور</string>
   <string name="about_madani_images">صور صفحات القرآن الموجودة بالتطبيق مصدرها مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة</string>
-  <string name="about_naskh_images">صور صفحات القرآن الموجودة بتطبيق النسخ مأخوذه بتصريح من SHL Info Systems</string>
+  <string name="about_naskh_images">صور صفحات القرآن الموجودة بتطبيق النسخ مأخوذة بتصريح من SHL Info Systems</string>
   <string name="prefs_category_advanced">خيارات متقدمة</string>
   <string name="prefs_category_advanced_summary">استيراد وتصدير المرجعيات وإعدادات أخرى</string>
   <string name="prefs_export_title">تصدير</string>
-  <string name="prefs_export_summary">تصدير نسخة من المرجعيات و التصنيفات.</string>
+  <string name="prefs_export_summary">تصدير نسخة من المرجعيات والتصنيفات.</string>
   <string name="prefs_page_type_title">نوع طباعة المصحف</string>
   <string name="prefs_page_type_summary">اختر نوع الصفحات</string>
 
@@ -283,7 +282,7 @@
   <plurals name="bookmark_tag_deleted">
     <item quantity="zero">لم يتم حذف عناصر</item>
     <item quantity="one">تم حذف عنصر واحد</item>
-    <item quantity="two">تم حذف عنصران</item>
+    <item quantity="two">تم حذف عنصرين</item>
     <item quantity="few">تم حذف %d عناصر</item>
     <item quantity="many">تم حذف %d عنصر</item>
   </plurals>
@@ -318,8 +317,8 @@
   <string name="prefs_megabytes_int">%1$d م ب</string>
   <string name="storage_permission_please_restart">يرجى إعادة تشغيل التطبيق لتفعيل الإذن</string>
   <string name="storage_permission_rationale">تطبيق قرآن يحتاج إلى إذنك بالوصول إلى الذاكرة الخارجية. التطبيق سيعمل دون الإذن، لكن عند مسح البيانات أو حذف التطبيق، ستحذف جميع صفحات المصحف والبيانات والصوت. هل تريد الإذن لتطبيق قرآن؟</string>
-  <string name="about_contributors_summary">قائمة بأسماء المساهمين في تطوير تطبيق قرآن أندرويد</string>
-  <string name="about_contributors">المساهمون</string>
+  <string name="about_contributors_summary">مستودع المشروع مفتوح المصدر والتحديثات على GitHub</string>
+  <string name="about_contributors">صفحة المشروع</string>
   <string name="about_others">أخرى</string>
   <string name="about_open_source">مشاريع مفتوحة المصدر</string>
   <string name="about_furqan" translatable="false">الباحث القرآني (tafsir.app)</string>

@@ -146,11 +146,21 @@ class TranslationFragment : Fragment(), AyahInteractionHandler, QuranPage,
     super.onPause()
   }
 
+  override val shouldLoadTranslations: Boolean
+    get() = quranSettings.isShowingFullPageTranslation && quranSettings.activeTranslations.isNotEmpty()
+
   override fun setVerses(
     page: Int,
     translations: Array<LocalTranslation>,
     verses: List<QuranAyahInfo>
   ) {
+    translationView.setDisplayMode(
+      if (shouldLoadTranslations && translations.isNotEmpty()) {
+        TranslationView.DisplayMode.QURAN_AND_TRANSLATION
+      } else {
+        TranslationView.DisplayMode.QURAN_TEXT
+      }
+    )
     translationView.setPageNumber(page)
     translationView.setVerses(quranDisplayData, translations, verses)
     val currentSelection = readingEventPresenter.currentAyahSelection()

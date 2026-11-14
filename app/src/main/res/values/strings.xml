@@ -18,7 +18,7 @@
   <string name="downloading_message">Please wait for the files to download (resume supported).</string>
   <string name="extracting_title">Processing&#8230;</string>
   <string name="menu_about">About Us</string>
-  <string name="menu_other_apps">Other apps</string>
+  <string name="menu_other_apps">Project Releases</string>
   <string name="menu_settings">Settings</string>
   <string name="menu_jump_last_page">Continue reading</string>
   <string name="continue_reading_ayah">Continue reading: sura %1$s, ayah %2$d</string>
@@ -105,42 +105,26 @@
   <string name="about_sliding_panel_url" translatable="false">https://github.com/umano/AndroidSlidingUpPanel</string>
   <string name="about_others">Others</string>
   <string name="about_contributors">Contributors</string>
-  <string name="about_contributors_summary">A list of people who contributed to the development of Quran for Android</string>
-  <string name="about_contributors_url" translatable="false">https://github.com/quran/quran_android/blob/main/CONTRIBUTORS.md</string>
+  <string name="about_contributors_summary">Source code, releases, and project contributors on GitHub</string>
+  <string name="about_contributors_url" translatable="false">https://github.com/mohammedjaferalshouha/quran-kareem-android</string>
 
   <!-- help -->
   <string name="help_title">Frequently Asked Questions</string>
   <string name="help">
         &lt;b>How do I play audio?&lt;/b>
-        &lt;br/>Open any Quran page. Tap on the screen once. At the bottom, you will notice
-        a play button and some text with the name of a qari. Click the name of the qari to
-        choose a different qari. Click play to download and play the current page or sura.
+        &lt;br/>Open any Quran page and tap once to show the controls. At the bottom, tap the reciter name to pick a qari or press play to download and listen. Playback continues smoothly when returning to the home screen and can be controlled from the notification.
         &lt;br/>
-        &lt;br/>&lt;b>How do I view translation?&lt;/b>
-        &lt;br/>Open any Quran page. Tap on the screen once. In the top, you will notice a
-        globe icon (or, if you don\'t see it, click an icon with three square dots) - click
-        this and choose translation to view the translation.
+        &lt;br/>&lt;b>How do I view tafsir or translations?&lt;/b>
+        &lt;br/>Long-press any ayah to open the quick tafsir bottom panel, including a button to download or manage tafsirs. You can also select active tafsirs from the overflow menu to view full-page Arabic verses with tafsir, or enable split-screen mode in settings on tablets.
         &lt;br/>
-        If you do not have any translations downloaded, it will take
-        you to a screen where you can download translations. Choose and download a translation,
-        then return back and tap the globe icon again to view the translation.
+        &lt;br/>&lt;b>How do I switch between page mode, text mode, and vertical scrolling?&lt;/b>
+        &lt;br/>Use the top toolbar icon to switch between Mushaf page images and flexible text mode, or enable vertical page navigation in the menu for continuous vertical scrolling.
         &lt;br/>
-        &lt;br/>&lt;b>How do I bookmark a page?&lt;/b>
-        &lt;br/>Open any Quran page. Tap on the screen once. In the top right, you will see a
-        bookmark icon. Tap the bookmark icon to bookmark the page (the color will turn solid white). Tap the bookmark icon
-        again to remove the bookmark.
+        &lt;br/>&lt;b>How do I zoom or resize text?&lt;/b>
+        &lt;br/>Pinch to zoom on Mushaf images, flexible text mode, tafsir views, and line-by-line mode, double-tap to zoom in or reset, or use Settings to adjust text size.
         &lt;br/>
-        &lt;br/>&lt;b>How do I make the text larger?&lt;/b>
-        &lt;br/>For the Arabic pages, hold your phone in landscape. This makes the text larger.
-        For translations, go to settings and set translation text size.
-        &lt;br/>
-        &lt;br/>&lt;b>How do I share an ayah?&lt;/b>
-        &lt;br/>While on any Arabic page, press and hold on any ayah to get a menu where you can
-        choose to bookmark, share or copy that ayah to the clipboard, see the translation,
-        or listen to its recitation.&lt;br/>
-        &lt;br/>&lt;b>Malayalam/Tamil/Bengali/Urdu fonts don\'t work!&lt;/b>
-        &lt;br/>Unfortunately, Android versions prior to 4.0 do not support these fonts, and there is
-        little we can do to help with this.
+        &lt;br/>&lt;b>How do I bookmark, search, or jump quickly?&lt;/b>
+        &lt;br/>Tap the bookmark icon in the top bar to save or move your reading bookmark, or long-press an ayah to bookmark, copy, or share it. Use Search to find suras and verses, or Quick Jump to go directly to a page, Juz\', surah, and ayah.
     </string>
   <string name="search_hint">Search the Quran</string>
   <string name="quranSearchType">Verses of the Quran</string>
@@ -331,8 +315,8 @@
   <string name="get_translations">Get Translations</string>
 
   <!-- help -->
-  <string name="email_us">If your question is not answered above, you can email quranandroid@gmail.com for support.
-        Please note that we receive lots of emails, so we may not be able to reply to all of them.</string>
+  <string name="email_us">If your question is not answered above, you can report issues or share suggestions on the project repository:
+        https://github.com/mohammedjaferalshouha/quran-kareem-android/issues</string>
 
   <!-- sura metainfo -->
   <string name="makki">Makki</string>

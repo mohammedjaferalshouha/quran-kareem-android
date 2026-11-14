@@ -21,6 +21,7 @@ import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
@@ -28,6 +29,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.DisplayCutoutCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.DefaultItemAnimator;
@@ -76,8 +78,12 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
   private SuraAyah selectedAyah;
   private int selectedAyahId = -1;
   private boolean shouldScrollToSelectedAyah;
+  private SuraAyah audioHighlightedAyah;
+  private int audioHighlightedAyahId = -1;
+  private boolean shouldScrollToAudioAyah;
   private OnClickListener onClickListener;
   private final LinearLayoutManager layoutManager;
+  private final ScaleGestureDetector scaleGestureDetector;
   private PageController pageController;
   private LocalTranslation[] localTranslations;
   private SpacerDecoration spacerDecoration;
@@ -86,14 +92,19 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
   private int lastReportedAyahId = -1;
   private int currentPageNumber = 1;
   private BackgroundColorSpan flowingSelectionSpan;
+  private BackgroundColorSpan flowingAudioSpan;
   private DisplayMode displayMode = DisplayMode.QURAN_TEXT;
   private int pendingScrollSura = -1;
   private int pendingScrollAyah = -1;
   private boolean isolateTranslationScrollFromPager;
+  private float pinchScaleFactor = 1f;
+  private boolean isScalingGesture;
+  private boolean childTouchCancelledForScale;
 
   public enum DisplayMode {
     QURAN_TEXT,
-    TRANSLATION_ONLY
+    TRANSLATION_ONLY,
+    QURAN_AND_TRANSLATION
   }
 
   public TranslationView(Context context) {
@@ -206,6 +217,36 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     quranTextView.setOnTouchListener((view, event) ->
         verseGestureDetector.onTouchEvent(event));
 
+    scaleGestureDetector = new ScaleGestureDetector(
+        context,
+        new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+          @Override
+          public boolean onScaleBegin(@NonNull ScaleGestureDetector detector) {
+            pinchScaleFactor = 1f;
+            isScalingGesture = true;
+            requestDisallowInterceptTouchEvent(true);
+            return true;
+          }
+
+          @Override
+          public boolean onScale(@NonNull ScaleGestureDetector detector) {
+            pinchScaleFactor *= detector.getScaleFactor();
+            if (pinchScaleFactor >= 1.12f) {
+              zoomBy(1f, QuranSettings.getInstance(getContext()));
+              pinchScaleFactor = 1f;
+            } else if (pinchScaleFactor <= 0.89f) {
+              zoomBy(-1f, QuranSettings.getInstance(getContext()));
+              pinchScaleFactor = 1f;
+            }
+            return true;
+          }
+
+          @Override
+          public void onScaleEnd(@NonNull ScaleGestureDetector detector) {
+            pinchScaleFactor = 1f;
+          }
+        });
+
     translationRecycler.addOnScrollListener(new RecyclerView.OnScrollListener() {
       boolean isDragging = false;
 
@@ -289,21 +330,45 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
 
   @Override
   public boolean dispatchTouchEvent(MotionEvent event) {
+    final int action = event.getActionMasked();
+    scaleGestureDetector.onTouchEvent(event);
+    if (isScalingGesture || event.getPointerCount() > 1) {
+      if (!childTouchCancelledForScale) {
+        childTouchCancelledForScale = true;
+        final MotionEvent cancelEvent = MotionEvent.obtain(event);
+        cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
+        super.dispatchTouchEvent(cancelEvent);
+        cancelEvent.recycle();
+      }
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+        resetScaleGestureState();
+      }
+      return true;
+    }
+
     final boolean isolateGesture = isolateTranslationScrollFromPager &&
         isVerticalPageNavigationEnabled() &&
         translationRecycler.getVisibility() == VISIBLE;
-    final int action = event.getActionMasked();
     if (isolateGesture && action == MotionEvent.ACTION_DOWN) {
       requestDisallowInterceptTouchEvent(true);
     }
     try {
       return super.dispatchTouchEvent(event);
     } finally {
-      if (isolateGesture &&
-          (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL)) {
-        post(() -> requestDisallowInterceptTouchEvent(false));
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+        resetScaleGestureState();
+        if (isolateGesture) {
+          post(() -> requestDisallowInterceptTouchEvent(false));
+        }
       }
     }
+  }
+
+  private void resetScaleGestureState() {
+    pinchScaleFactor = 1f;
+    isScalingGesture = false;
+    childTouchCancelledForScale = false;
+    post(() -> requestDisallowInterceptTouchEvent(false));
   }
 
   public void setVerses(@NonNull QuranDisplayData quranDisplayData,
@@ -331,16 +396,25 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     List<TranslationViewRow> rows = new ArrayList<>();
     int currentSura = -1;
     boolean wantTranslationHeaders = translations.length > 1;
+    final boolean includeArabicText =
+        displayMode == DisplayMode.QURAN_AND_TRANSLATION &&
+            QuranSettings.getInstance(getContext()).wantArabicInTranslationView();
     for (int i = 0, size = verses.size(); i < size; i++) {
       QuranAyahInfo verse = verses.get(i);
       int sura = verse.sura;
       if (sura != currentSura) {
         rows.add(new TranslationViewRow(TranslationViewRow.Type.SURA_HEADER, verse,
             quranDisplayData.getSuraName(getContext(), sura, true)));
+        if (includeArabicText && verse.ayah == 1 && sura != 1 && sura != 9) {
+          rows.add(new TranslationViewRow(TranslationViewRow.Type.BASMALLAH, verse));
+        }
         currentSura = sura;
       }
 
       rows.add(new TranslationViewRow(TranslationViewRow.Type.VERSE_NUMBER, verse));
+      if (includeArabicText && verse.arabicText != null) {
+        rows.add(new TranslationViewRow(TranslationViewRow.Type.QURAN_TEXT, verse));
+      }
 
       final LocalTranslation[] sortedTranslations = Arrays.copyOf(translations, translations.length);
       Arrays.sort(sortedTranslations, new LocalTranslationDisplaySort());
@@ -417,7 +491,7 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
   public void setDisplayMode(@NonNull DisplayMode displayMode) {
     this.displayMode = displayMode;
     translationPageNumberView.setVisibility(
-        displayMode == DisplayMode.TRANSLATION_ONLY ? VISIBLE : GONE);
+        displayMode != DisplayMode.QURAN_TEXT ? VISIBLE : GONE);
   }
 
   private void showFlowingQuranText(@NonNull QuranDisplayData quranDisplayData,
@@ -477,10 +551,16 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
           Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
     quranTextView.setText(text, TextView.BufferType.SPANNABLE);
+    flowingAudioSpan = null;
+    flowingSelectionSpan = null;
     refresh(QuranSettings.getInstance(getContext()));
+    applyFlowingHighlights();
     if (selectedAyah != null && shouldScrollToSelectedAyah) {
       shouldScrollToSelectedAyah = false;
       scrollFlowingTextToAyah(selectedAyah.sura, selectedAyah.ayah);
+    } else if (audioHighlightedAyah != null && shouldScrollToAudioAyah) {
+      shouldScrollToAudioAyah = false;
+      scrollFlowingTextToAyah(audioHighlightedAyah.sura, audioHighlightedAyah.ayah);
     }
   }
 
@@ -537,16 +617,25 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
       selectedAyah = suraAyah;
       selectedAyahId = ayahId;
       shouldScrollToSelectedAyah = scrollToAyah;
-    } else if (selectedAyah != null) {
-      hideMenu();
+    } else {
+      if (highlightType.equals(HighlightTypes.AUDIO)) {
+        audioHighlightedAyah = suraAyah;
+        audioHighlightedAyahId = ayahId;
+        shouldScrollToAudioAyah = scrollToAyah;
+      }
+      if (selectedAyah != null) {
+        hideMenu();
+      }
     }
 
     if (showingQuranText && shouldHandleHighlightType(highlightType)) {
-      if (highlightType.equals(HighlightTypes.SELECTION)) {
-        highlightFlowingAyah(suraAyah.sura, suraAyah.ayah);
-      }
+      applyFlowingHighlights();
       if (scrollToAyah) {
-        shouldScrollToSelectedAyah = false;
+        if (highlightType.equals(HighlightTypes.SELECTION)) {
+          shouldScrollToSelectedAyah = false;
+        } else if (highlightType.equals(HighlightTypes.AUDIO)) {
+          shouldScrollToAudioAyah = false;
+        }
         scrollFlowingTextToAyah(suraAyah.sura, suraAyah.ayah);
       }
     } else if (shouldHandleHighlightType(highlightType)) {
@@ -563,39 +652,32 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
   }
 
   public void unhighlightAyah(HighlightType highlightType) {
+    clearHighlightsForType(highlightType);
+  }
+
+  public void unhighlightAyat(HighlightType highlightType) {
+    clearHighlightsForType(highlightType);
+  }
+
+  private void clearHighlightsForType(HighlightType highlightType) {
     if (highlightType.equals(HighlightTypes.SELECTION)) {
       selectedAyah = null;
       selectedAyahId = -1;
       shouldScrollToSelectedAyah = false;
+    } else if (highlightType.equals(HighlightTypes.AUDIO)) {
+      audioHighlightedAyah = null;
+      audioHighlightedAyahId = -1;
+      shouldScrollToAudioAyah = false;
     }
 
     if (shouldHandleHighlightType(highlightType)) {
-      if (highlightType.equals(HighlightTypes.SELECTION)) {
-        clearFlowingSelection();
-      }
+      applyFlowingHighlights();
       translationAdapter.unhighlight();
       if (selectedAyah != null) {
-        // imples that it's not selection, so let's reselect the selected ayah
+        // implies that it's not selection, so let's reselect the selected ayah
         translationAdapter.setHighlightedAyah(selectedAyahId, HighlightTypes.SELECTION);
-      }
-    }
-  }
-
-  public void unhighlightAyat(HighlightType highlightType) {
-    if (selectedAyah != null && highlightType.equals(HighlightTypes.SELECTION)) {
-      selectedAyah = null;
-      selectedAyahId = -1;
-      shouldScrollToSelectedAyah = false;
-    }
-
-    if (shouldHandleHighlightType(highlightType)) {
-      if (highlightType.equals(HighlightTypes.SELECTION)) {
-        clearFlowingSelection();
-      }
-      translationAdapter.unhighlight();
-      if (selectedAyah != null) {
-        // imples that it's not selection, so let's reselect the selected ayah
-        translationAdapter.setHighlightedAyah(selectedAyahId, HighlightTypes.SELECTION);
+      } else if (audioHighlightedAyah != null) {
+        translationAdapter.setHighlightedAyah(audioHighlightedAyahId, HighlightTypes.AUDIO);
       }
     }
   }
@@ -883,31 +965,45 @@ public class TranslationView extends FrameLayout implements View.OnClickListener
     }
   }
 
-  private void highlightFlowingAyah(int sura, int ayah) {
-    clearFlowingSelection();
+  private void applyFlowingHighlights() {
+    flowingAudioSpan = updateFlowingHighlightSpan(
+        flowingAudioSpan,
+        audioHighlightedAyah,
+        ContextCompat.getColor(getContext(), R.color.audio_highlight));
+    flowingSelectionSpan = updateFlowingHighlightSpan(
+        flowingSelectionSpan,
+        selectedAyah,
+        0x554CAF50);
+  }
+
+  @Nullable
+  private BackgroundColorSpan updateFlowingHighlightSpan(
+      @Nullable BackgroundColorSpan currentSpan,
+      @Nullable SuraAyah targetAyah,
+      int color) {
     final CharSequence value = quranTextView.getText();
     if (!(value instanceof Spannable)) {
-      return;
+      return null;
+    }
+    final Spannable spannable = (Spannable) value;
+    if (currentSpan != null) {
+      spannable.removeSpan(currentSpan);
+    }
+    if (targetAyah == null) {
+      return null;
     }
     for (FlowAyahOffset offset : flowAyahOffsets) {
-      if (offset.ayahInfo.sura == sura && offset.ayahInfo.ayah == ayah) {
-        flowingSelectionSpan = new BackgroundColorSpan(0x554CAF50);
-        ((Spannable) value).setSpan(
-            flowingSelectionSpan,
+      if (offset.ayahInfo.sura == targetAyah.sura && offset.ayahInfo.ayah == targetAyah.ayah) {
+        final BackgroundColorSpan nextSpan = new BackgroundColorSpan(color);
+        spannable.setSpan(
+            nextSpan,
             offset.characterOffset,
             offset.endCharacterOffset,
             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return;
+        return nextSpan;
       }
     }
-  }
-
-  private void clearFlowingSelection() {
-    final CharSequence value = quranTextView.getText();
-    if (flowingSelectionSpan != null && value instanceof Spannable) {
-      ((Spannable) value).removeSpan(flowingSelectionSpan);
-    }
-    flowingSelectionSpan = null;
+    return null;
   }
 
   private static int dp(Context context, int value) {

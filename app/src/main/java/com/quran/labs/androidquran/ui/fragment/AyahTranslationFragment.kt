@@ -85,6 +85,8 @@ class AyahTranslationFragment : AyahActionFragment(), TranslationScreen {
     next.setOnClickListener(onClickListener)
     val prev = translationControls.findViewById<View>(R.id.previous_ayah)
     prev.setOnClickListener(onClickListener)
+    val manageTranslations = translationControls.findViewById<View>(R.id.manage_translations_button)
+    manageTranslations.setOnClickListener(onClickListener)
     val getTranslations = view.findViewById<Button>(R.id.get_translations_button)
     getTranslations.setOnClickListener(onClickListener)
 
@@ -113,7 +115,7 @@ class AyahTranslationFragment : AyahActionFragment(), TranslationScreen {
     val activity: Activity? = activity
     if (activity is PagerActivity) {
       when (v.id) {
-        R.id.get_translations_button -> activity.startTranslationManager()
+        R.id.get_translations_button, R.id.manage_translations_button -> activity.startTranslationManager()
         R.id.next_ayah -> readingEventPresenter.selectNextAyah()
         R.id.previous_ayah -> readingEventPresenter.selectPreviousAyah()
       }

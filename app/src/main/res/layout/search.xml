@@ -36,29 +36,43 @@
       android:textColor="?android:textColorPrimary"
       android:textSize="17sp" />
 
-  <LinearLayout
-      android:id="@+id/sura_result"
+  <ScrollView
+      android:id="@+id/sura_results_scroll"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:background="?attr/selectableItemBackground"
-      android:clickable="true"
-      android:focusable="true"
-      android:orientation="vertical"
-      android:padding="12dp"
       android:visibility="gone">
 
-    <TextView
-        android:id="@+id/sura_result_title"
+    <LinearLayout
+        android:id="@+id/sura_results_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="@style/SearchResult" />
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/sura_result_metadata"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textAppearance="@style/SearchResult.Location" />
-  </LinearLayout>
+      <LinearLayout
+          android:id="@+id/sura_result"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:background="?attr/selectableItemBackground"
+          android:clickable="true"
+          android:focusable="true"
+          android:orientation="vertical"
+          android:padding="12dp"
+          android:visibility="gone">
+
+        <TextView
+            android:id="@+id/sura_result_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/SearchResult" />
+
+        <TextView
+            android:id="@+id/sura_result_metadata"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/SearchResult.Location" />
+      </LinearLayout>
+    </LinearLayout>
+  </ScrollView>
 
   <ListView
       android:id="@+id/results_list"

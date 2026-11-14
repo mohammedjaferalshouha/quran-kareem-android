@@ -1,6 +1,7 @@
 package com.quran.labs.androidquran.ui.fragment
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -21,6 +22,7 @@ import com.quran.labs.androidquran.data.Constants
 import com.quran.labs.androidquran.pageselect.PageSelectActivity
 import com.quran.labs.androidquran.ui.TranslationManagerActivity
 import com.quran.labs.androidquran.util.OrientationLockUtils
+import com.quran.labs.androidquran.util.QuranSettings
 import com.quran.labs.androidquran.util.QuranUtils
 import com.quran.labs.androidquran.util.ThemeUtil
 import com.quran.mobile.di.ExtraPreferencesProvider
@@ -67,7 +69,15 @@ class QuranSettingsFragment : PreferenceFragmentCompat() {
     // handle theme preference
     val themePref: Preference? = findPreference(Constants.PREF_APP_THEME)
     themePref?.onPreferenceChangeListener = Preference.OnPreferenceChangeListener { _, newValue ->
-      ThemeUtil.setTheme(newValue as String)
+      val theme = newValue as String
+      ThemeUtil.setTheme(theme)
+      val isNight = when (theme) {
+        Constants.THEME_DARK -> true
+        Constants.THEME_LIGHT -> false
+        else -> (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+      }
+      QuranSettings.getInstance(requireContext()).setNightModeOnly(isNight)
       true
     }
 

@@ -17,7 +17,9 @@ import android.widget.AdapterView
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.Button
 import android.widget.CursorAdapter
+import android.widget.LinearLayout
 import android.widget.ListView
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -71,6 +73,8 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
   private lateinit var messageView: TextView
   private lateinit var warningView: TextView
   private lateinit var buttonGetTranslations: Button
+  private lateinit var suraResultsScroll: ScrollView
+  private lateinit var suraResultsContainer: LinearLayout
   private lateinit var suraResultView: View
   private lateinit var suraResultTitle: TextView
   private lateinit var suraResultMetadata: TextView
@@ -137,6 +141,8 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
     messageView = findViewById(R.id.search_area)
     warningView = findViewById(R.id.search_warning)
     buttonGetTranslations = findViewById(R.id.btnGetTranslations)
+    suraResultsScroll = findViewById(R.id.sura_results_scroll)
+    suraResultsContainer = findViewById(R.id.sura_results_container)
     suraResultView = findViewById(R.id.sura_result)
     suraResultTitle = findViewById(R.id.sura_result_title)
     suraResultMetadata = findViewById(R.id.sura_result_metadata)
@@ -230,6 +236,9 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
   }
 
   override fun handleDownloadFailure(errId: Int) {
+    warningView.setText(errId)
+    warningView.visibility = View.VISIBLE
+    buttonGetTranslations.visibility = View.VISIBLE
   }
 
   override fun onNewIntent(intent: Intent) {
@@ -247,13 +256,8 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
   }
 
   override fun onLoadFinished(loader: Loader<Cursor?>, cursor: Cursor?) {
-    val matchedSura = quranDisplayData.findSurasByName(this, query).firstOrNull()
-    if (matchedSura != null) {
-      showSuraResult(matchedSura)
-    } else {
-      suraResultView.visibility = View.GONE
-      suraResultView.setOnClickListener(null)
-    }
+    val matchedSuras = quranDisplayData.findSurasByName(this, query)
+    showSuraResults(matchedSuras)
 
     val containsArabic = QuranUtils.doesStringContainArabic(query)
     val showArabicWarning = containsArabic &&
@@ -272,17 +276,18 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
     }
 
     if (cursor == null) {
-      if (matchedSura == null) {
+      if (matchedSuras.isEmpty()) {
         messageView.text = getString(R.string.no_results, query)
       } else {
+        val count = matchedSuras.size
         messageView.text = resources.getQuantityString(
-          R.plurals.search_results, 1, query, 1
+          R.plurals.search_results, count, query, count
         )
       }
       // cursor is null either when the query length is less than 3 characters or when
       // there are no valid databases to search at all. in this case, if it's not an
       // Arabic search, show the "get translations" button.
-      if (matchedSura == null && !containsArabic && query.length > 2) {
+      if (matchedSuras.isEmpty() && !containsArabic && query.length > 2) {
         buttonGetTranslations.setText(R.string.get_translations)
         buttonGetTranslations.visibility = View.VISIBLE
       }
@@ -291,7 +296,7 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
       }
     } else {
       // Display the number of results
-      val count = cursor.count + if (matchedSura == null) 0 else 1
+      val count = cursor.count + matchedSuras.size
       val countString = getResources().getQuantityString(
         R.plurals.search_results, count, query, count
       )
@@ -408,17 +413,83 @@ class SearchActivity : AppCompatActivity(), SimpleDownloadListener,
     startActivity(intent)
   }
 
-  private fun showSuraResult(sura: Int) {
+  private fun showSuraResults(matchedSuras: List<Int>) {
+    while (suraResultsContainer.childCount > 1) {
+      suraResultsContainer.removeViewAt(1)
+    }
+
+    if (matchedSuras.isEmpty()) {
+      suraResultView.visibility = View.GONE
+      suraResultView.setOnClickListener(null)
+      suraResultsScroll.visibility = View.GONE
+      return
+    }
+
+    bindSuraResultView(suraResultView, suraResultTitle, suraResultMetadata, matchedSuras.first())
+
+    if (matchedSuras.size > 1) {
+      val paddingPx = Math.round(12 * resources.displayMetrics.density)
+      val outValue = android.util.TypedValue()
+      theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+      for (sura in matchedSuras.drop(1)) {
+        val titleView = TextView(this).apply {
+          layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+          )
+          setTextAppearance(R.style.SearchResult)
+        }
+        val metadataView = TextView(this).apply {
+          layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+          )
+          setTextAppearance(R.style.SearchResult_Location)
+        }
+        val row = LinearLayout(this).apply {
+          layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+          )
+          orientation = LinearLayout.VERTICAL
+          setPadding(paddingPx, paddingPx, paddingPx, paddingPx)
+          isClickable = true
+          isFocusable = true
+          setBackgroundResource(outValue.resourceId)
+          addView(titleView)
+          addView(metadataView)
+        }
+        bindSuraResultView(row, titleView, metadataView, sura)
+        suraResultsContainer.addView(row)
+      }
+    }
+
+    suraResultsScroll.layoutParams = suraResultsScroll.layoutParams.apply {
+      height = if (matchedSuras.size > 3) {
+        Math.round(180 * resources.displayMetrics.density)
+      } else {
+        ViewGroup.LayoutParams.WRAP_CONTENT
+      }
+    }
+    suraResultsScroll.visibility = View.VISIBLE
+  }
+
+  private fun bindSuraResultView(
+    container: View,
+    titleView: TextView,
+    metadataView: TextView,
+    sura: Int
+  ) {
     val ayahs = quranInfo.getNumberOfAyahs(sura)
     val page = quranInfo.getPageNumberForSura(sura)
-    suraResultTitle.text = quranDisplayData.getSuraName(this, sura, true)
-    suraResultMetadata.text = getString(
+    titleView.text = quranDisplayData.getSuraName(this, sura, true)
+    metadataView.text = getString(
       R.string.search_sura_result_metadata,
       QuranUtils.getLocalizedNumber(ayahs),
       QuranUtils.getLocalizedNumber(page)
     )
-    suraResultView.visibility = View.VISIBLE
-    suraResultView.setOnClickListener { jumpToSura(sura) }
+    container.visibility = View.VISIBLE
+    container.setOnClickListener { jumpToSura(sura) }
   }
 
   private fun jumpToSura(sura: Int) {

@@ -3,6 +3,7 @@ package com.quran.labs.androidquran.view
 import android.content.Context
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewConfiguration
 import com.quran.labs.androidquran.ui.helpers.AyahSelectedListener
@@ -24,6 +25,8 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
   private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
   private var downX = 0f
   private var downY = 0f
+  private var isScaling = false
+  private var consumeUntilUp = false
   private var handOffToPager = false
   private var startedAtPositiveXEdge = false
   private var startedAtNegativeXEdge = false
@@ -50,9 +53,55 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
   override fun setPageController(controller: PageController?, pageNumber: Int, skips: Int) {
     super.setPageController(controller, pageNumber, skips)
     val gestureDetector = GestureDetector(context, PageGestureDetector())
+    val scaleGestureDetector = ScaleGestureDetector(
+      context,
+      object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+          isScaling = true
+          consumeUntilUp = true
+          handOffToPager = false
+          parent?.requestDisallowInterceptTouchEvent(true)
+          return true
+        }
+
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+          val nextScale = (zoomScale * detector.scaleFactor).coerceIn(MIN_ZOOM, MAX_ZOOM)
+          if (abs(nextScale - zoomScale) >= 0.005f) {
+            zoomScale = nextScale
+            applyZoom()
+          }
+          parent?.requestDisallowInterceptTouchEvent(true)
+          return true
+        }
+
+        override fun onScaleEnd(detector: ScaleGestureDetector) {
+          isScaling = false
+        }
+      }
+    )
     val gestureListener = OnTouchListener { _, event ->
+      val action = event.actionMasked
+      if (action == MotionEvent.ACTION_DOWN) {
+        consumeUntilUp = false
+        isScaling = false
+      }
+
+      scaleGestureDetector.onTouchEvent(event)
+      if (event.pointerCount > 1 || isScaling || consumeUntilUp) {
+        val cancel = MotionEvent.obtain(event).apply { setAction(MotionEvent.ACTION_CANCEL) }
+        gestureDetector.onTouchEvent(cancel)
+        cancel.recycle()
+        parent?.requestDisallowInterceptTouchEvent(true)
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+          isScaling = false
+          consumeUntilUp = false
+          parent?.requestDisallowInterceptTouchEvent(false)
+        }
+        return@OnTouchListener true
+      }
+
       if (zoomScale > MIN_ZOOM) {
-        when (event.actionMasked) {
+        when (action) {
           MotionEvent.ACTION_DOWN -> {
             downX = event.x
             downY = event.y
@@ -79,7 +128,7 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
                 startedAtNegativeYEdge
               )
               if (handOffToPager) {
-                val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+                val cancel = MotionEvent.obtain(event).apply { setAction(MotionEvent.ACTION_CANCEL) }
                 gestureDetector.onTouchEvent(cancel)
                 cancel.recycle()
                 parent?.requestDisallowInterceptTouchEvent(false)
@@ -98,7 +147,7 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
         }
       }
       val gestureHandled = gestureDetector.onTouchEvent(event)
-      if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
         parent?.requestDisallowInterceptTouchEvent(false)
       }
       zoomScale > MIN_ZOOM || gestureHandled
@@ -134,13 +183,15 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
     }
   }
 
-  private fun applyZoom() {
+  private fun applyZoom(releaseParentLock: Boolean = false) {
     imageView.pivotX = imageView.width / 2f
     imageView.pivotY = imageView.height / 2f
     imageView.scaleX = zoomScale
     imageView.scaleY = zoomScale
     clampTranslation()
-    parent?.requestDisallowInterceptTouchEvent(false)
+    if (releaseParentLock) {
+      parent?.requestDisallowInterceptTouchEvent(false)
+    }
   }
 
   private fun resetZoom(animated: Boolean) {
@@ -160,7 +211,7 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
     } else {
       imageView.translationX = 0f
       imageView.translationY = 0f
-      applyZoom()
+      applyZoom(releaseParentLock = true)
       imageView.setLayerType(View.LAYER_TYPE_NONE, null)
     }
   }
@@ -188,11 +239,14 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
     }
 
     override fun onDoubleTap(event: MotionEvent): Boolean {
-      return pageController.handleTouchEvent(
+      val targetScale = if (zoomScale > MIN_ZOOM + 0.05f) MIN_ZOOM else DOUBLE_TAP_ZOOM
+      zoomBy(targetScale - zoomScale)
+      pageController.handleTouchEvent(
         event,
         AyahSelectedListener.EventType.DOUBLE_TAP,
         pageNumber
       )
+      return true
     }
 
     override fun onScroll(
@@ -223,6 +277,7 @@ open class QuranImagePageLayout(context: Context) : QuranPageLayout(context) {
   companion object {
     private const val MIN_ZOOM = 1f
     private const val MAX_ZOOM = 4f
+    private const val DOUBLE_TAP_ZOOM = 2f
     private const val RESET_ANIMATION_DURATION_MS = 160L
     private const val ZOOM_ANIMATION_DURATION_MS = 120L
     private const val EDGE_TOLERANCE_PX = 1f

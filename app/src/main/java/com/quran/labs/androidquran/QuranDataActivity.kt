@@ -466,6 +466,14 @@ class QuranDataActivity : AppCompatActivity(), SimpleDownloadListener, OnRequest
         runListViewWithoutPages()
       }
     }
+    if (dataStatus.patchParam.isNullOrEmpty()) {
+      dialog.setNeutralButton(R.string.menu_translation) { dialog13: DialogInterface, _: Int ->
+        dialog13.dismiss()
+        promptForDownloadDialog = null
+        quranSettings.setTextReadingMode(true)
+        runListViewWithoutPages()
+      }
+    }
     val promptForDownloadDialog = dialog.create()
     promptForDownloadDialog.setTitle(R.string.downloadPrompt_title)
     promptForDownloadDialog.show()

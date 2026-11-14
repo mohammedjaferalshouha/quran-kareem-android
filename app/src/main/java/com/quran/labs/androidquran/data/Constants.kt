@@ -100,6 +100,7 @@ object Constants {
   const val PREF_APP_THEME = "appTheme"
   const val PREF_MOBILE_SYNC_LEGACY_BOOKMARKS_MIGRATED = "mobileSyncLegacyBookmarksMigrated"
   const val PREF_HAS_SEEN_MOVABLE_BOOKMARK_EDUCATION = "hasSeenMovableBookmarkEducation"
+  const val PREF_SHOWING_FULL_PAGE_TRANSLATION = "showingFullPageTranslation"
 
   // Themes
   const val THEME_LIGHT = "light"

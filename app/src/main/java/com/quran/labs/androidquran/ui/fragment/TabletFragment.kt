@@ -112,6 +112,8 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
       ?.getWrappedView()
       ?.let { it as? LineByLineZoomLayout }
       ?.zoomBy(delta)
+    (mainView.leftPage as? QuranImagePageLayout)?.zoomBy(delta)
+    (mainView.rightPage as? QuranImagePageLayout)?.zoomBy(delta)
 
     if (mode == Mode.TRANSLATION) {
       val leftPage = mainView.leftPage as? QuranTranslationPageLayout
@@ -489,10 +491,17 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
         splitQuranTextView?.setVerses(quranDisplayData, emptyArray(), verses)
       }
     } else {
+      val displayMode = if (shouldLoadTranslations && translations.isNotEmpty()) {
+        TranslationView.DisplayMode.QURAN_AND_TRANSLATION
+      } else {
+        TranslationView.DisplayMode.QURAN_TEXT
+      }
       if (page == pageNumber) {
+        rightTranslation?.setDisplayMode(displayMode)
         rightTranslation?.setPageNumber(page)
         rightTranslation?.setVerses(quranDisplayData, translations, verses)
       } else if (page == pageNumber + 1) {
+        leftTranslation?.setDisplayMode(displayMode)
         leftTranslation?.setPageNumber(page)
         leftTranslation?.setVerses(quranDisplayData, translations, verses)
       }
@@ -527,7 +536,8 @@ class TabletFragment : Fragment(), PageController, TranslationPresenter.Translat
   }
 
   override val shouldLoadTranslations: Boolean
-    get() = isSplitScreen
+    get() = isSplitScreen ||
+      (quranSettings.isShowingFullPageTranslation && quranSettings.activeTranslations.isNotEmpty())
 
   fun cleanup() {
     Timber.d("cleaning up page %d", pageNumber)

@@ -26,7 +26,9 @@ import com.quran.common.search.SearchTextUtil
 import com.quran.data.core.QuranInfo
 import com.quran.labs.androidquran.QuranApplication
 import com.quran.labs.androidquran.R
+import com.quran.labs.androidquran.data.Constants
 import com.quran.labs.androidquran.ui.helpers.JumpDestination
+import com.quran.labs.androidquran.util.QuranSettings
 import com.quran.labs.androidquran.util.QuranUtils
 import com.quran.labs.androidquran.view.ForceCompleteTextView
 import dev.zacsweers.metro.Inject
@@ -43,6 +45,7 @@ class JumpFragment : DialogFragment() {
   lateinit var quranInfo: QuranInfo
   private var suppressJump: Boolean = false
 
+  private lateinit var juzInput: ForceCompleteTextView
   private lateinit var suraInput: ForceCompleteTextView
   private lateinit var ayahInput: EditText
   private lateinit var pageInput: EditText
@@ -56,6 +59,18 @@ class JumpFragment : DialogFragment() {
 
     val builder = Builder(activity, R.style.QuranDialogTheme)
     builder.setTitle(activity.getString(R.string.menu_jump))
+
+    // Juz chooser
+    juzInput = layout.findViewById(R.id.juz_spinner)
+    val juzs = (1..Constants.JUZ2_COUNT).map { juz ->
+      activity.getString(R.string.juz2_description, QuranUtils.getLocalizedNumber(juz))
+    }
+    val juzAdapter = InfixFilterArrayAdapter(
+      activity,
+      android.R.layout.simple_spinner_dropdown_item,
+      juzs
+    )
+    juzInput.setAdapter(juzAdapter)
 
     // Sura chooser
     suraInput = layout.findViewById(R.id.sura_spinner)
@@ -91,18 +106,55 @@ class JumpFragment : DialogFragment() {
       override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
 
       override fun afterTextChanged(s: Editable?) {
+        if (suppressJump) return
         val number = s.toString().toIntOrNull() ?: return
         val pageNumber = number.coerceIn(1..quranInfo.numberOfPages)
         val sura = quranInfo.getSuraOnPage(pageNumber)
         val ayah = quranInfo.getFirstAyahOnPage(pageNumber)
+        val juz = quranInfo.getJuzFromPage(pageNumber).coerceIn(1, juzs.size)
 
         suppressJump = true
-        suraInput.setText(suras[sura - 1])
+        juzInput.tag = juz
+        juzInput.setText(juzs[juz - 1], false)
+        suraInput.setText(suras[sura - 1], false)
         suraInput.tag = sura
         ayahInput.setText(ayah.toString())
         suppressJump = false
       }
     })
+
+    juzInput.setOnForceCompleteListener { _: ForceCompleteTextView?, position: Int, _: Long ->
+      val enteredText = juzInput.text.toString()
+      val juzName: String? = when {
+        position >= 0 -> juzAdapter.getItem(position)
+        juzs.contains(enteredText) -> enteredText
+        juzAdapter.isEmpty -> null
+        else -> juzAdapter.getItem(0)
+      }
+
+      val juz = (juzs.indexOf(juzName) + 1).let { if (it <= 0) 1 else it }
+      if (position < 0 && juz == juzInput.tag as? Int) {
+        suppressJump = true
+        juzInput.setText(juzs[juz - 1], false)
+        suppressJump = false
+        return@setOnForceCompleteListener
+      }
+
+      val page = quranInfo.getStartingPageForJuz(juz).coerceIn(1..quranInfo.numberOfPages)
+      val sura = quranInfo.getSuraOnPage(page)
+      val ayah = quranInfo.getFirstAyahOnPage(page)
+
+      suppressJump = true
+      juzInput.tag = juz
+      juzInput.setText(juzs[juz - 1], false)
+      suraInput.tag = sura
+      suraInput.setText(suras[sura - 1], false)
+      ayahInput.tag = ayah
+      ayahInput.setText(ayah.toString())
+      pageInput.hint = QuranUtils.getLocalizedNumber(page)
+      pageInput.text = null
+      suppressJump = false
+    }
 
     suraInput.setOnForceCompleteListener { _: ForceCompleteTextView?, position: Int, _: Long ->
       val enteredText = suraInput.text.toString()
@@ -120,10 +172,14 @@ class JumpFragment : DialogFragment() {
       var sura = suras.indexOf(suraName) + 1
       // default to al-Fatiha
       if (sura == 0) sura = 1
+      val previousSura = suraInput.tag as? Int
       suraInput.tag = sura
-      suraInput.setText(suras[sura - 1])
+      suraInput.setText(suras[sura - 1], false)
+      if (position < 0 && sura == previousSura) {
+        return@setOnForceCompleteListener
+      }
 
-      //  trigger ayah change
+      // trigger ayah change
       val ayahValue: CharSequence = ayahInput.text
       // space is intentional, to differentiate with value set by the user (delete/backspace)
       ayahInput.setText(ayahValue.ifEmpty { " " })
@@ -147,8 +203,13 @@ class JumpFragment : DialogFragment() {
             // ensure in 1..ayahCount
             ayah = ayah.coerceIn(1..ayahCount)
             val page = quranInfo.getPageFromSuraAyah(sura, ayah)
+            val juz = quranInfo.getJuzFromPage(page).coerceIn(1, juzs.size)
+            suppressJump = true
             pageInput.hint = QuranUtils.getLocalizedNumber(page)
             pageInput.text = null
+            juzInput.tag = juz
+            juzInput.setText(juzs[juz - 1], false)
+            suppressJump = false
           }
           ayahInput.tag = ayah
           // seems numeric IM always use western arabic (not localized)
@@ -160,6 +221,45 @@ class JumpFragment : DialogFragment() {
         }
       }
     })
+
+    val settings = QuranSettings.getInstance(activity)
+    val argPage = arguments?.getInt(ARG_PAGE, Constants.NO_PAGE) ?: Constants.NO_PAGE
+    val argSura = arguments?.getInt(ARG_SURA, -1) ?: -1
+    val argAyah = arguments?.getInt(ARG_AYAH, -1) ?: -1
+
+    val resolvedPage = when {
+      argPage in 1..quranInfo.numberOfPages -> argPage
+      argSura > 0 && argAyah > 0 -> quranInfo.getPageFromSuraAyah(argSura, argAyah)
+      settings.automaticLastPage in 1..quranInfo.numberOfPages -> settings.automaticLastPage
+      settings.lastPage in 1..quranInfo.numberOfPages -> settings.lastPage
+      else -> 1
+    }.coerceIn(1..quranInfo.numberOfPages)
+
+    val resolvedSura = when {
+      argSura in 1..Constants.SURAS_COUNT -> argSura
+      settings.automaticLastPage == resolvedPage &&
+          settings.automaticLastSura in 1..Constants.SURAS_COUNT -> settings.automaticLastSura
+      else -> quranInfo.getSuraOnPage(resolvedPage)
+    }
+
+    val resolvedAyah = when {
+      argAyah > 0 -> argAyah
+      settings.automaticLastPage == resolvedPage && settings.automaticLastAyah > 0 ->
+        settings.automaticLastAyah
+      else -> quranInfo.getFirstAyahOnPage(resolvedPage)
+    }.coerceIn(1..quranInfo.getNumberOfAyahs(resolvedSura))
+
+    val resolvedJuz = quranInfo.getJuzFromPage(resolvedPage).coerceIn(1, juzs.size)
+
+    suppressJump = true
+    pageInput.hint = QuranUtils.getLocalizedNumber(resolvedPage)
+    juzInput.tag = resolvedJuz
+    juzInput.setText(juzs[resolvedJuz - 1], false)
+    suraInput.tag = resolvedSura
+    suraInput.setText(suras[resolvedSura - 1], false)
+    ayahInput.tag = resolvedAyah
+    ayahInput.setText(resolvedAyah.toString())
+    suppressJump = false
 
     builder.setView(layout)
     builder.setPositiveButton(
@@ -291,5 +391,22 @@ class JumpFragment : DialogFragment() {
 
   companion object {
     const val TAG = "JumpFragment"
+    private const val ARG_PAGE = "arg_page"
+    private const val ARG_SURA = "arg_sura"
+    private const val ARG_AYAH = "arg_ayah"
+
+    fun newInstance(
+      initialPage: Int = Constants.NO_PAGE,
+      initialSura: Int = -1,
+      initialAyah: Int = -1
+    ): JumpFragment {
+      return JumpFragment().apply {
+        arguments = Bundle().apply {
+          putInt(ARG_PAGE, initialPage)
+          putInt(ARG_SURA, initialSura)
+          putInt(ARG_AYAH, initialAyah)
+        }
+      }
+    }
   }
 }

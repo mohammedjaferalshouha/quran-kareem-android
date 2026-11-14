@@ -28,6 +28,24 @@
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:paddingTop="8dp"
+      android:text="@string/quran_juz2"
+      android:textColor="@color/default_text"/>
+
+  <com.quran.labs.androidquran.view.ForceCompleteTextView
+      android:id="@+id/juz_spinner"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:inputType="text|textAutoComplete"
+      android:imeOptions="flagNoExtractUi"
+      android:selectAllOnFocus="true"
+      android:textColor="@color/edit_text_input_text_color"
+      android:backgroundTint="@color/edit_text_line_color"
+      android:textColorHint="@color/edit_text_hint_color"/>
+
+  <TextView
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:paddingTop="8dp"
       android:paddingBottom="8dp"
       android:text="@string/sura_and_ayah"
       android:textColor="@color/default_text"/>

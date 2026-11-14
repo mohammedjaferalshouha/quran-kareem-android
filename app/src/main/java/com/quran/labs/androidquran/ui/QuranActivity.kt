@@ -1,6 +1,7 @@
 package com.quran.labs.androidquran.ui
 
 import android.app.SearchManager
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.DialogInterface
@@ -226,21 +227,6 @@ class QuranActivity : AppCompatActivity(),
         findViewById<ViewPager>(R.id.index_pager).currentItem = pageToJumpTo
         jumpToPageOnResume = null
       }
-
-      compositeDisposable.add(
-          Completable.timer(500, MILLISECONDS)
-              .observeOn(AndroidSchedulers.mainThread())
-              .subscribe {
-                try {
-                  startService(
-                    audioUtils.getAudioIntent(this@QuranActivity, AudioService.ACTION_STOP)
-                  )
-                } catch (_: IllegalStateException) {
-                  // do nothing, we might be in the background
-                  // onPause should have stopped us from needing this, but it sometimes happens
-                }
-              }
-      )
     }
     isPaused = false
   }
@@ -410,12 +396,14 @@ class QuranActivity : AppCompatActivity(),
         gotoPageDialog()
       }
       R.id.other_apps -> {
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.data = "market://search?q=pub:quran.com".toUri()
-        if (packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY) == null) {
-          intent.data = "https://play.google.com/store/search?q=pub:quran.com".toUri()
+        val intent = Intent(
+          Intent.ACTION_VIEW,
+          "https://github.com/mohammedjaferalshouha/quran-kareem-android/releases".toUri()
+        )
+        try {
+          startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
         }
-        startActivity(intent)
       }
       else -> {
         val handled = extraScreens.firstOrNull { it.id == itemId }?.onClick(this) ?: false
@@ -580,7 +568,13 @@ class QuranActivity : AppCompatActivity(),
   private fun gotoPageDialog() {
     if (!isPaused) {
       val fm = supportFragmentManager
-      val jumpDialog = JumpFragment()
+      val initialPage = settings.automaticLastPage.takeIf { it != Constants.NO_PAGE }
+        ?: settings.lastPage
+      val jumpDialog = JumpFragment.newInstance(
+        initialPage = initialPage,
+        initialSura = settings.automaticLastSura,
+        initialAyah = settings.automaticLastAyah
+      )
       jumpDialog.show(fm, JumpFragment.TAG)
     }
   }

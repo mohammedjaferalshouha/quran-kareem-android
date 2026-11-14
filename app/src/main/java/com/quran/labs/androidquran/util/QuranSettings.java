@@ -81,6 +81,12 @@ public class QuranSettings {
         .apply();
   }
 
+  public void setNightModeOnly(boolean nightMode) {
+    prefs.edit()
+        .putBoolean(Constants.PREF_NIGHT_MODE, nightMode)
+        .apply();
+  }
+
   public boolean useNewBackground() {
     return prefs.getBoolean(Constants.PREF_USE_NEW_BACKGROUND, true);
   }
@@ -491,6 +497,16 @@ public class QuranSettings {
 
   public boolean getWasShowingTranslation() {
     return perInstallationPrefs.getBoolean(Constants.PREF_WAS_SHOWING_TRANSLATION, false);
+  }
+
+  public boolean isShowingFullPageTranslation() {
+    return prefs.getBoolean(Constants.PREF_SHOWING_FULL_PAGE_TRANSLATION, false);
+  }
+
+  public void setShowingFullPageTranslation(boolean showing) {
+    prefs.edit()
+        .putBoolean(Constants.PREF_SHOWING_FULL_PAGE_TRANSLATION, showing)
+        .apply();
   }
 
   public boolean didCheckPartialImages(String pageType) {

@@ -38,22 +38,25 @@ class QuranLineByLineFragment : Fragment() {
   }
 
   override fun onDestroyView() {
+    zoomScale = resolveCurrentZoomScale(zoomScale, zoomLayout?.currentZoomScale())
     zoomLayout = null
     super.onDestroyView()
   }
 
   override fun onSaveInstanceState(outState: Bundle) {
+    zoomScale = resolveCurrentZoomScale(zoomScale, zoomLayout?.currentZoomScale())
     outState.putFloat(STATE_ZOOM_SCALE, zoomScale)
     super.onSaveInstanceState(outState)
   }
 
   fun zoomBy(delta: Float) {
-    val newScale = calculateZoomScale(zoomScale, delta)
-    if (newScale == zoomScale) {
+    val currentScale = resolveCurrentZoomScale(zoomScale, zoomLayout?.currentZoomScale())
+    val newScale = calculateZoomScale(currentScale, delta)
+    zoomScale = newScale
+    if (newScale == currentScale) {
       return
     }
 
-    zoomScale = newScale
     zoomLayout?.setZoomScale(zoomScale, animated = true)
   }
 
@@ -65,6 +68,10 @@ class QuranLineByLineFragment : Fragment() {
     private const val PARAM_PAGE_NUMBER = "pageNumber"
     private const val PARAM_FORCE_PAGE_FIT = "forcePageFit"
     private const val STATE_ZOOM_SCALE = "zoomScale"
+    internal fun resolveCurrentZoomScale(savedScale: Float, layoutScale: Float?): Float {
+      return layoutScale ?: savedScale
+    }
+
     internal fun calculateZoomScale(currentScale: Float, delta: Float): Float {
       return LineByLineZoomLayout.calculateZoomScale(currentScale, delta)
     }
