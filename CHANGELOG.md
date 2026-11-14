@@ -1,5 +1,27 @@
 # سجل التغييرات | Changelog
 
+## الإصدار ١٫١٫٨
+
+تاريخ الإصدار: ١٤ نوفمبر ٢٠٢٦
+
+### المزايا والتحسينات
+
+- إضافة الانتقال المباشر حسب الجزء أو السورة أو الآية أو الصفحة، مع فتح نافذة الانتقال عند موضع القراءة الحالي.
+- عرض جميع السور المطابقة في البحث، وإظهار تنبيه مناسب عند تعذر تنزيل الترجمات.
+- دعم التكبير باللمس المزدوج واللمس بإصبعين في عرض صفحات المصحف وقراءة السطر بسطر.
+- تحسين لوحة الترجمة ومزامنة تمييز الآية أثناء التلاوة.
+- حفظ وضع الترجمة الكاملة والوضع الليلي ضمن الإعدادات، وتحسين استعادة موضع القراءة.
+
+## Version 1.1.8
+
+Release date: 14 November 2026
+
+- Added direct navigation by juz, surah, ayah, or page, with the jump dialog initialized at the current reading position.
+- Search now lists every matching surah and reports translation-download failures clearly.
+- Added double-tap and pinch zoom to Mushaf page and line-by-line reading.
+- Improved the translation panel and synchronized audio ayah highlighting.
+- Persisted full-page translation and night-mode settings, and improved reading-position restoration.
+
 ## الإصدار ١٫١٫٧
 
 تاريخ الإصدار: ١٦ أغسطس ٢٠٢٦

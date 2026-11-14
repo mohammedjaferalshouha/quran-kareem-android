@@ -18,7 +18,7 @@
 
 An open-source Android Quran reader focused on a clear Arabic experience and flexible Uthmani text rendering. It includes recitation, search, bookmarks, automatic reading-position recovery, light and dark themes, and a side-by-side page layout.
 
-Current release: `1.1.7`
+Current release: `1.1.8`
 
 Application ID: `com.moham.qurankareem`
 
